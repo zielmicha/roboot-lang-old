@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp2.2</TargetFramework>
+    <EnableDefaultAntlrItems>false</EnableDefaultAntlrItems>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Antlr4.Runtime" Version="4.6.6" />
+    <PackageReference Include="Antlr4.CodeGenerator" Version="4.6.6">
+      <PrivateAssets>All</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="System.Collections.Immutable" Version="1.5.0" />
+    <PackageReference Include="Equ" Version="2.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Antlr4 Include="McGrammar.g4">
+      <Generator>MSBuild:Compile</Generator>
+      <CustomToolNamespace>MetaComputer.Grammar</CustomToolNamespace>
+      <Listener>false</Listener>
+      <Visitor>true</Visitor>
+    </Antlr4>
+  </ItemGroup>
+</Project>
+

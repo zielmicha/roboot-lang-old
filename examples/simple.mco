@@ -1,0 +1,30 @@
+
+module Foo {
+    import Base;
+
+    struct S {
+        a: Int;
+    };
+
+    let foo1 = 5;
+    let foo: Int = 5;
+
+    method_base foo;
+
+    fun aa x => 5 + x;
+    fun bb x => aa 5;
+
+    fun bar x => {
+        return x + 5;
+    };
+
+    fun baz1 a : Int => 5;
+    fun baz2 ~a : Int => 5;
+    fun baz3 (a:Int) => 5;
+
+    fun baz4 ~(a:Int=5) : Int => 5;
+
+    fun baz ~(a:Int=5) : Int => {
+        return bar a 5;
+    };
+}
