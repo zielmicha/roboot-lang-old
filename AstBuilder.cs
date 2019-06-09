@@ -7,6 +7,20 @@ namespace MetaComputer.AstBuilder {
     using Antlr4.Runtime;
     using Antlr4.Runtime.Tree;
 
+    class AstBuilder {
+        public static McGrammarLexer CreateParser(string fileName, string data) {
+            // var input = File.ReadAllText("examples/simple.mco");
+            var inputStream = new AntlrInputStream(data);
+            inputStream.name = fileName;
+            var tlexer = new McGrammarLexer();
+            var lexer = new McGrammarLexer(new AntlrInputStream(input));
+            var parser = new McGrammarParser(new CommonTokenStream(lexer));
+            parser.AddErrorListener(new ConsoleErrorListener());
+            parser.ErrorHandler = new BailErrorStrategy();
+            return parser;
+        }
+    }
+    
     static class MakeLocationUtil {
         static Location MakeLocation(this ParserRuleContext ctx) {
             return new Location() {
@@ -52,7 +66,7 @@ namespace MetaComputer.AstBuilder {
             if (e.Count == 1)
                 return Visit(e[0]);
 
-            Debug.Assert (e.Count == 3);
+            Debug.Assert(e.Count == 3);
 
             string op = e[1].GetText();
             return new Call(

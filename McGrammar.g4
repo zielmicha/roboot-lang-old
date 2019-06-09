@@ -20,7 +20,7 @@ module_stmt :
         include_stmt |
         fun_stmt |
         let_stmt |
-        struct_stmt |
+        type_stmt |
         module_def_stmt;
 
 method_base_stmt : 'method_base' ident;
@@ -30,9 +30,7 @@ fun_stmt : 'fun' ident fundef_expr;
 let_stmt : 'let' ident (':' expr)? '=' expr;
 val_stmt : 'val' ident ':' expr;
 
-struct_stmt : 'struct' ident '{' (struct_field ';')* '}';
-
-struct_field : ident ':' expr;
+type_stmt : 'type' ident fundef_expr;
 
 block_stmt :
         expr |
@@ -41,10 +39,10 @@ block_stmt :
 
 return_stmt : 'return' expr;
 
-fundef_expr : fundef_arg (':' expr)? '=>' expr;
+fundef_expr : (fundef_arg | '(' fundef_arg* ')') '=>' expr;
 fundef_arg :
-        '~'? ident |
-        '~'? '(' ident (':' expr)? ('=' expr)? ')';
+        ('~'|'~~'|) ident |
+        ('~'|'~~'|) '(' ident (':' expr)? ('=' expr)? ')'
 
 expr :
      fundef_expr |
@@ -63,20 +61,23 @@ funcallarg :
     expr10 |
     '~' ident ':' expr10;
 
-expr10 : expr10 '[' (expr_tuple | expr |) ']' |
-        expr10 '.' ident |
+expr10 : expr10 '[' (expr_tuple | expr |) ']' | // translated to getItem
+        expr10 '.' ident | // translated to getField
         expr_atom;
 
 expr_atom : '(' expr_tuple ')' |
     '{' expr_block '}' |
     '(' expr ')' |
     if_expr |
+    struct_expr |
     atom;
 
 expr_tuple : (expr ',')+ expr?;
 expr_block : block_stmt | (block_stmt ';')+ block_stmt?;
 
 if_expr : 'if' expr '{' expr_block '}' ('else' '{' expr_block '}')?;
+struct_expr : 'struct' '{' struct_field* '}';
+struct_field : ident ':' expr ';';
 
 atom : INT | ident;
 
