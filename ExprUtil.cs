@@ -24,14 +24,30 @@ namespace MetaComputer.Compiler {
             return Expression.Call(obj, typeof(T).GetMethod("get_Item"), index);
         }
 
+        public static Expression CreateCollection<T>(IEnumerable<Expression> items) {
+            return Expression.ListInit(
+                Expression.New(typeof(T).GetConstructor(new Type[]{})),
+                items.Select(x => Expression.ElementInit(typeof(T).GetMethod("Add"), x)).ToList());
+        }
+
+        public static Expression CreateKeyValuePair<K, V>(Expression a, Expression b) {
+            return Expression.New(typeof(KeyValuePair<K, V>).GetConstructor(new Type[]{typeof(K), typeof(V)}), a, b);
+        }
+
+        public static object EvaluateNow(Expression expr) { // Expression
+            var stmt = Expression.Lambda<Func<object>>(ExprUtil.DeclareAllVariables(expr)).Compile();
+            return stmt();
+        }
+
         public static Expression EvalOnce(Expression value, ICollection<Expression> instrs) {
             var param = Expression.Parameter(value.Type, "tmp");
             instrs.Add(Expression.Assign(param, value));
             return param;
         }
 
-        public static BlockExpression DeclareAllVariables(Expression expr) {
+        public static BlockExpression DeclareAllVariables(Expression expr, List<ParameterExpression> except=null) {
             List<ParameterExpression> alreadyDeclared = new List<ParameterExpression>();
+            if (except != null) alreadyDeclared.AddRange(except);
             alreadyDeclared.AddRange(GetAllChildren(expr).OfType<LambdaExpression>().SelectMany(l => l.Parameters));
             alreadyDeclared.AddRange(GetAllChildren(expr).OfType<BlockExpression>().SelectMany(l => l.Variables));
 

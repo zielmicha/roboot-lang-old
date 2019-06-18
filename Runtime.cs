@@ -33,6 +33,18 @@ namespace MetaComputer.Runtime {
             throw new Exception($"cannot coerce {source} (type: {source.GetType()}) into {target}");
         }
 
+        public static void ThrowAmbigousMatch() {
+            throw new Exception($"ambigous match");
+        }
+
+        public static void ThrowNoMatch() {
+            throw new Exception($"no match");
+        }
+
+        public static void DebugPrintInt(string msg, int value) {
+            Console.WriteLine($"DebugPrintInt {msg} {value}");
+        }
+
         public static object Coerce(object source, object target, out int cost) {
             if (target is Type targetType) {
                 if (source.GetType() == targetType) {
@@ -46,7 +58,7 @@ namespace MetaComputer.Runtime {
                 }
             }
 
-            cost = 0;
+            cost = -1;
             return null;
         }
     }

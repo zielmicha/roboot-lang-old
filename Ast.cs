@@ -2,18 +2,29 @@ namespace MetaComputer.Ast {
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Linq.Expressions;
     using MetaComputer.Util;
 
-    struct Location {
+    class Location {
         public string Filename;
         public int StartLine;
         public int StartColumn;
         public int EndLine;
         public int EndColumn;
+
+        public Location() {}
+
+        public Location(string filename, int line) {
+            this.Filename = filename;
+            this.StartLine = line;
+            this.StartColumn = 1;
+            this.EndLine = line;
+            this.EndColumn = 1;
+        }
     }
 
     abstract class Node {
-        public Location Location { get; }
+        public Location Location { get; set; }
     }
 
     abstract class BlockStmt : Node {
@@ -93,10 +104,10 @@ namespace MetaComputer.Ast {
 
         public override string ToString() {
             var parameters = new List<String>();
-            parameters.AddRange(Args.Select(x => x.ToString()));
+            parameters.AddRange(Args.Select(x => x == null ? "null" : x.ToString()));
             parameters.AddRange(NamedArgs.Select(x => "~{x.Item0}:{x.Item1}"));
             var p = string.Join(" ", parameters);
-            return $"{Func}({p})";
+            return $"({Func} {p})";
         }
     }
 
@@ -113,6 +124,10 @@ namespace MetaComputer.Ast {
 
         public IntLiteral(Int64 val) {
             this.Value = val;
+        }
+
+        public override string ToString() {
+            return this.Value.ToString();
         }
     }
 
@@ -142,9 +157,37 @@ namespace MetaComputer.Ast {
 
     class MatchCase : Node {
         public readonly List<(string name, Expr type)> ImplicitVariables;
-
         public readonly Expr MatchedValue;
-
         public readonly Expr Body;
+
+        public MatchCase(List<(string name, Expr type)> implicitVariables,
+                         Expr matchedValue, Expr body) {
+            this.ImplicitVariables = implicitVariables;
+            this.MatchedValue = matchedValue;
+            this.Body = body;
+        }
+    }
+
+    // "Native"
+
+    class NativeValue : Expr {
+        public readonly object Value;
+
+        public NativeValue(object value) {
+            this.Value = value;
+        }
+    }
+
+    class CallNative : Expr {
+        public readonly LambdaExpression Func;
+        public readonly IReadOnlyList<Type> ArgTypes;
+        public readonly Type ReturnType;
+
+        public readonly IReadOnlyList<Expr> Args;
+
+        public CallNative(LambdaExpression func, IReadOnlyList<Expr> args) {
+            this.Func = func;
+            this.Args = args;
+        }
     }
 }

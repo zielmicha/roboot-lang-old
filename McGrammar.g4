@@ -42,7 +42,7 @@ return_stmt : 'return' expr;
 fundef_expr : (fundef_arg | '(' fundef_arg* ')') '=>' expr;
 fundef_arg :
         ('~'|'~~'|) ident |
-        ('~'|'~~'|) '(' ident (':' expr)? ('=' expr)? ')'
+        ('~'|'~~'|) '(' ident (':' expr)? ('=' expr)? ')';
 
 expr :
      fundef_expr |

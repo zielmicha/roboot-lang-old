@@ -5,30 +5,53 @@ namespace MetaComputer.Runtime {
     using System.Linq.Expressions;
     using MetaComputer.Util;
 
-    interface IFunction {
-        Value MatchArguments(Params paramObjs);
+    class MethodCase {
+        public readonly Compiler.FunctionScope Scope;
+        public readonly Ast.MatchCase Body;
 
-        object Invoke(FunctionArgs<object> args);
+        public MethodCase(Compiler.FunctionScope scope, Ast.MatchCase body) {
+            this.Scope = scope;
+            this.Body = body;
+        }
     }
 
-    class Multimethod {
-        public Multimethod(string name, IEnumerable<Function> implementations=null) {
+    class Method : ICallable {
+        public Method(string name, MethodCase implementation) : this(name) {
+            this.Implementations.Add(implementation);
+        }
+        
+        public Method(string name, IEnumerable<MethodCase> implementations=null) {
             this.Name = name;
             if (implementations != null)
                 this.Implementations.AddRange(implementations);
+            this.Compiled = new Lazy<Func<Params, object>>(() => Compile());
         }
 
-        public readonly List<Function> Implementations = new List<Function>();
+        public object Call(Params parameters) {
+            return Compiled.Value(parameters);
+        }
+        
+        public readonly List<MethodCase> Implementations = new List<MethodCase>();
 
         public readonly bool IsBase;
 
         public readonly string Name;
 
-        public static Multimethod Merge(IEnumerable<Multimethod> methods, string newName) {
-            return new Multimethod(
+        public static Method Merge(IEnumerable<Method> methods, string newName) {
+            return new Method(
                 name: newName,
                 implementations: methods.SelectMany(m => m.Implementations)
             );
+        }
+
+        private readonly Lazy<Func<Params, object>> Compiled;
+
+        private Func<Params, object> Compile() {
+            var parameters = Expression.Parameter(typeof(Params), "parameters");
+            var body = Compiler.FunctionCompiler.CompileMatchCases(Compiler.Value.Dynamic(parameters), Implementations.Select(impl => (new Compiler.FunctionCompiler(impl.Scope), impl.Body)).ToList());
+            var paramList = new List<ParameterExpression>() { parameters };
+            // Console.WriteLine("body: " + Util.ExpressionStringBuilder.ExpressionToString(body.Expression));
+            return (Func<Params, object>)Expression.Lambda(Compiler.ExprUtil.DeclareAllVariables(body.Expression, paramList), paramList).Compile();
         }
     }
 }

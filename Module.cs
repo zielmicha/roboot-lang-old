@@ -12,12 +12,12 @@ namespace MetaComputer.Runtime {
             if (values.Count == 1) return values[0];
 
             foreach (object o in values) {
-                if (!(o is Multimethod)) {
+                if (!(o is Method)) {
                     throw new Exception($"{name}: attempt to merge non-method value {o}");
                 }
             }
 
-            return Multimethod.Merge(values.Select(x => (Multimethod)x), newName: name);
+            return Method.Merge(values.Select(x => (Method)x), newName: name);
         }
 
         public void SetValue(string name, object value) {
@@ -26,6 +26,16 @@ namespace MetaComputer.Runtime {
 
         public object GetValue(string name) {
             return values[name];
+        }
+
+        public void RegisterMethod(string name, Method body) {
+            if (!values.ContainsKey(name))
+                values[name] = new Method(name);
+
+            if (values[name] is Method m)
+                values[name] = Method.Merge(new List<Method>() { m, body }, name);
+            else
+                throw new Exception($"attempt to register method {name}, but {name} is already a non-method value");
         }
 
         /// Lookups up a name in the current module.

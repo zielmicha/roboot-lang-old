@@ -10,7 +10,12 @@ namespace MetaComputer.Runtime {
     class Params {
         public readonly IReadOnlyList<object> Arguments;
 
-        public IReadOnlyDictionary<string, object> NamedArguments;
+        public readonly IReadOnlyDictionary<string, object> NamedArguments;
+
+        public Params(IReadOnlyList<object> arguments, IReadOnlyDictionary<string, object> namedArguments) {
+            this.Arguments = arguments;
+            this.NamedArguments = namedArguments;
+        }
     }
 
     interface ICallable {

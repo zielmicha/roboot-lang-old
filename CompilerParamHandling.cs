@@ -12,8 +12,6 @@ namespace MetaComputer.Compiler {
             var positional = parameters.ParamList.Where(x => !x.IsNamed).ToList();
             var named = parameters.ParamList.Where(x => x.IsNamed).ToList();
 
-            var positionalRequired = positional.Where(x => !x.IsOptional).Count();
-
             var instr = new List<Expression>();
 
             Expression paramsValue = Expression.TypeAs(matchWith.Expression, typeof(Runtime.Params));
@@ -27,17 +25,17 @@ namespace MetaComputer.Compiler {
             Expression namedValues = Expression.Field(paramsValue, "NamedArguments");
 
             instr.Add(Expression.IfThen(
-                Expression.LessThan(
-                    Expression.Property(positionalValues, "Count"),
-                    Expression.Constant(positionalRequired)),
+                Expression.GreaterThan(
+                    Expression.Property(positionalValues, typeof(IReadOnlyCollection<object>).GetProperty("Count")),
+                    Expression.Constant(positional.Count)),
                 Expression.Goto(failLabel)));
 
             for (int i=0; i < positional.Count; i ++) {
                 Param target = positional[i];
-                Expression value = ExprUtil.GetItem<List<object>>(positionalValues, Expression.Constant(i));
+                Expression value = ExprUtil.GetItem<IReadOnlyList<object>>(positionalValues, Expression.Constant(i));
                 Expression match = CompileMatch(Value.Dynamic(value), target.Value, failLabel);
 
-                Expression onDefault = ExprUtil.Empty();
+                Expression onDefault = Expression.Goto(failLabel);
 
                 if (target.DefaultValue.IsSome()) {
                     Value defaultValue = CompileExpr(target.DefaultValue.Get());
@@ -47,7 +45,7 @@ namespace MetaComputer.Compiler {
                 instr.Add(Expression.IfThenElse(
                     Expression.LessThan(
                         Expression.Constant(i),
-                        Expression.Property(positionalValues, "Count")),
+                        Expression.Property(positionalValues, typeof(IReadOnlyCollection<object>).GetProperty("Count"))),
                     match, onDefault));
             }
 
@@ -76,7 +74,7 @@ namespace MetaComputer.Compiler {
 
             instr.Add(Expression.IfThen(
                 Expression.NotEqual(
-                    Expression.Property(namedValues, "Count"),
+                    Expression.Property(namedValues, typeof(IReadOnlyCollection<KeyValuePair<string, object>>).GetProperty("Count")),
                     Expression.Constant(named.Count)),
                 Expression.Goto(failLabel)));
 

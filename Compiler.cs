@@ -1,6 +1,7 @@
 namespace MetaComputer.Compiler {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Reflection;
     using System.Linq;
     using System.Linq.Expressions;
@@ -41,10 +42,14 @@ namespace MetaComputer.Compiler {
     }
 
     class ModuleScope : IScope {
-        public MetaComputer.Runtime.Module module;
+        public readonly Runtime.Module Module;
+
+        public ModuleScope(Runtime.Module module) {
+            this.Module = module;
+        }
 
         public Value Lookup(string name) {
-            var v = module.Lookup(name, includeLocal: true);
+            var v = this.Module.Lookup(name, includeLocal: true);
             if (v.IsNone())
                 throw new Exception($"no such name {name}");
 
@@ -62,6 +67,9 @@ namespace MetaComputer.Compiler {
         
         public Value CompileExpr(Expr expr) {
             Value v = CompileExprDispatch(expr);
+            if (expr.Location == null)
+                return v;
+
             return Value.Dynamic(
                 Expression.Block(
                     MakeDebugInfo(expr.Location),
@@ -92,11 +100,12 @@ namespace MetaComputer.Compiler {
 
             // TODO: develop sophisticated Dijkstra-algorithm based user defined coercion system
 
-            var e = Expression.TypeAs(
-                Expression.Call(typeof(RuntimeUtil).GetMethod("Coerce"), x.Expression, type.Expression),
-                type.AsClrType());
+            var cost = Expression.Parameter(typeof(int), "cost");
+            Expression e = Expression.Call(typeof(RuntimeUtil).GetMethod("Coerce"), x.Expression, type.Expression, cost);
 
-            return (null, null, null);
+            var instrs = new List<Expression>();
+            e = ExprUtil.EvalOnce(e, instrs);
+            return (Value.Seq(instrs, Value.Dynamic(Expression.NotEqual(cost, Expression.Constant(-1)))), Value.Dynamic(cost), Value.Dynamic(Expression.Convert(e, type.AsClrType())));
         }
 
         public Value CompileCoerceOrThrow(Value x, Value type) {
@@ -145,43 +154,80 @@ namespace MetaComputer.Compiler {
             return Expression.IfThen(Expression.Not(isEq.Expression), Expression.Goto(failLabel));
         }
 
-        public (Value success, Value cost) CompileMatchCase(Value matchWith, MatchCase matchCase) {
-            LabelTarget failLabel = Expression.Label();
-            LabelTarget successLabel = Expression.Label();
-            var successVar = Expression.Parameter(typeof(bool));
-            var costVar = Expression.Parameter(typeof(int));
+        public (Value success, Value cost, Value result) CompileMatchCase(Value matchWith, MatchCase matchCase) {
+            LabelTarget failLabel = Expression.Label("fail");
+            LabelTarget finishLabel = Expression.Label("finish");
+            var successVar = Expression.Parameter(typeof(bool), "success");
+            var costVar = Expression.Parameter(typeof(int), "cost");
 
             var compiler = new FunctionCompiler(scope);
             var instr = new List<Expression>();
 
             foreach (var variable in matchCase.ImplicitVariables) {
-                implicitVars[variable.name] = null;
+                compiler.implicitVars[variable.name] = null;
             }
 
-            instr.Add(compiler.CompileMatchValue(matchWith, matchCase.MatchedValue, failLabel));
+            instr.Add(compiler.CompileMatch(matchWith, matchCase.MatchedValue, failLabel));
 
             foreach (var variable in matchCase.ImplicitVariables) {
-                if (implicitVars[variable.name] == null) {
+                if (compiler.implicitVars[variable.name] == null) {
                     throw new Exception($"{variable.name} was not instantiated at {matchCase.Location}");
                 }
-                var coerceResult = compiler.CompileCoerce(implicitVars[variable.name],
+                var coerceResult = compiler.CompileCoerce(compiler.implicitVars[variable.name],
                                                           CompileExpr(variable.type));
 
-                instr.Add(Expression.IfThen(
+                instr.Add(Expression.IfThenElse(
                     coerceResult.success.Expression,
                     Expression.Block(
                         Expression.AddAssign(costVar, coerceResult.cost.Expression),
-                        scope.CreateVariable(variable.name, coerceResult.value))));
+                        scope.CreateVariable(variable.name, coerceResult.value)),
+                    Expression.Goto(failLabel)));
             }
 
-            instr.Add(Expression.Goto(successLabel));
+            instr.Add(Expression.Assign(successVar, Expression.Constant(true)));
+            instr.Add(Expression.Goto(finishLabel));
+
             instr.Add(Expression.Label(failLabel));
             instr.Add(Expression.Assign(successVar, Expression.Constant(false)));
 
-            instr.Add(Expression.Label(successLabel));
-            instr.Add(Expression.Assign(successVar, Expression.Constant(true)));
+            instr.Add(Expression.Label(finishLabel));
 
-            return (Value.Dynamic(successVar), Value.Dynamic(costVar));
+            return (Value.Seq(instr, Value.Dynamic(successVar)), Value.Dynamic(costVar), compiler.CompileExpr(matchCase.Body));
+        }
+
+        public static Value CompileMatchCases(Value matchWith, List<(FunctionCompiler, MatchCase)> cases) {
+            var instrs = new List<Expression>();
+            matchWith = matchWith.EvalOnce(instrs);
+
+            var bestCost = Expression.Parameter(typeof(int), "bestCost");
+            var bestCase = Expression.Parameter(typeof(int), "bestCase");
+            instrs.Add(Expression.Assign(bestCost, Expression.Constant(int.MaxValue)));
+            instrs.Add(Expression.Assign(bestCase, Expression.Constant(-1)));
+
+            var caseBodies = new List<Value>();
+            for (var caseI = 0; caseI < cases.Count; caseI ++) {
+                var (compiler, matchCase) = cases[caseI];
+                var (sucessVar, costVar, caseBody) = compiler.CompileMatchCase(matchWith, matchCase);
+                caseBodies.Add(caseBody);
+                instrs.Add(Expression.IfThen(sucessVar.Expression,
+                    Expression.IfThenElse(
+                        Expression.Equal(costVar.Expression, bestCost), Expression.Call(typeof(RuntimeUtil).GetMethod("ThrowAmbigousMatch")),
+                        Expression.IfThen(
+                            Expression.LessThan(costVar.Expression, bestCost),
+                                Expression.Block(Expression.Assign(bestCost, costVar.Expression), Expression.Assign(bestCase, Expression.Constant(caseI)))))));
+            }
+
+            instrs.Add(Expression.IfThen(Expression.Equal(bestCase, Expression.Constant(-1)), Expression.Call(typeof(RuntimeUtil).GetMethod("ThrowNoMatch"))));
+            // instrs.Add(Expression.Call(typeof(RuntimeUtil).GetMethod("DebugPrintInt"), Expression.Constant("bestCase"), bestCase));
+
+            var resultVar = Expression.Parameter(typeof(object), "result");
+
+            for (var caseI = 0; caseI < cases.Count; caseI ++) {
+                instrs.Add(Expression.IfThen(Expression.Equal(bestCase, Expression.Constant(caseI)),
+                                             Expression.Assign(resultVar, Expression.Convert(caseBodies[caseI].Expression, typeof(object)))));
+            }
+
+            return Value.Seq(instrs, Value.Dynamic(resultVar));
         }
 
         public Value CompileBlockStmt(BlockLet stmt) {
@@ -206,6 +252,9 @@ namespace MetaComputer.Compiler {
                 case IntLiteral e: return CompileExpr(e);
                 case StringLiteral e: return CompileExpr(e);
                 case Block e: return CompileExpr(e);
+                case Ast.Params e: return CompileExpr(e);
+                case NativeValue e: return CompileExpr(e);
+                case CallNative e: return CompileExpr(e);
                 default:
                     throw new Exception("unknown AST node " + expr.GetType());
             }
@@ -223,17 +272,27 @@ namespace MetaComputer.Compiler {
             return scope.Lookup(name.Str);
         }
 
-        private Value CompileExpr(Block call) {
+        private Value CompileExpr(NativeValue nativeValue) {
+            return Value.Immediate(nativeValue.Value);
+        }
+
+        private Value CompileExpr(Block block) {
             var compiler = new FunctionCompiler(scope);
 
             var body = new List<Expression>();
             Value lastValue = null;
-            foreach (BlockStmt stmt in call.Stmts) {
+            foreach (BlockStmt stmt in block.Stmts) {
                 lastValue = compiler.CompileBlockStmt(stmt);
                 body.Add(lastValue.Expression);
             }
 
             return Value.Dynamic(Expression.Block(body.ToArray()), lastValue.Type);
+        }
+
+        public Value CompileExpr(CallNative call) {
+            var callExpr = Expression.Invoke(call.Func,
+                                             call.Args.Select(x => CompileExpr(x).Expression));
+            return Value.Dynamic(callExpr, type: Value.Immediate(call.ReturnType));
         }
         
         private Value CompileExpr(Call call) {
@@ -246,10 +305,17 @@ namespace MetaComputer.Compiler {
             var paramsValue = CompileExpr(call.MakeParamsNode());
 
             instrs.Add(Expression.Call(valueCallable,
-                                       typeof(ICallable).GetMethod("call"),
+                                       typeof(ICallable).GetMethod("Call"),
                                        paramsValue.Expression));
 
             return Value.Dynamic(Expression.Block(instrs));
+        }
+
+        private Value CompileExpr(Ast.Params parameters) {
+            var positional = ExprUtil.CreateCollection<List<object>>(parameters.ParamList.Where(param => !param.IsNamed).Select(param => Expression.Convert(CompileExpr(param.Value).Expression, typeof(object))));
+            var named = ExprUtil.CreateCollection<Dictionary<string, object>>(parameters.ParamList.Where(param => param.IsNamed)
+                .Select(param => ExprUtil.CreateKeyValuePair<string, object>(Expression.Constant(param.Name), Expression.Convert(CompileExpr(param.Value).Expression, typeof(object)))));
+            return Value.Dynamic(Expression.New(typeof(Runtime.Params).GetConstructors()[0], positional, named));
         }
 
         public Value CompileExpr(FunDefExpr fundef) {
