@@ -7,7 +7,7 @@ OP4 : 'and' | 'or' | 'xor' ;
 OP5 : ('=' | '<' | '>' | '!') ('.' | '+' | '-' | '=' | '>' | '<' | '/' | '*')+
     | '<' | '>';
 OP6 : '..' ;
-OP7 : '+' | '-' ;
+OP7 : '+';
 OP8 : (('*' | '/') ('.' | '+' | '-' | '=' | '>' | '<' | '/' | '*')*) | 'div' | 'mod' ;
 
 program : module_def_stmt*;
@@ -52,9 +52,10 @@ expr3 : expr3 OP3 expr4 | expr4;
 expr4 : expr4 OP4 expr5 | expr5;
 expr5 : expr5 OP5 expr6 | expr6;
 expr6 : expr6 OP6 expr7 | expr7;
-expr7 : expr7 OP7 expr8 | expr8;
+expr7 : expr7 (OP7 | '-') expr8 | expr8;
 expr8 : expr8 OP8 expr9 | expr9;
-expr9 : funcall;
+expr9 : funcall |
+    '-' expr10;
 
 funcall : funcall funcallarg | expr10;
 funcallarg :

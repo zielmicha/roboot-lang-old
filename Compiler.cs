@@ -8,11 +8,11 @@ namespace MetaComputer.Compiler {
     using MetaComputer.Runtime;
     using MetaComputer.Ast;
 
-    interface IScope {
+    public interface IScope {
         Value Lookup(string name);
     }
 
-    class FunctionScope : IScope {
+    public class FunctionScope : IScope {
         private IScope parent;
         private Dictionary<string, Value> values = new Dictionary<string, Value>();
 
@@ -41,7 +41,7 @@ namespace MetaComputer.Compiler {
         }
     }
 
-    class ModuleScope : IScope {
+    public class ModuleScope : IScope {
         public readonly Runtime.Module Module;
 
         public ModuleScope(Runtime.Module module) {
@@ -211,12 +211,13 @@ namespace MetaComputer.Compiler {
                 caseBodies.Add(caseBody);
                 instrs.Add(Expression.IfThen(sucessVar.Expression,
                     Expression.IfThenElse(
-                        Expression.Equal(costVar.Expression, bestCost), Expression.Call(typeof(RuntimeUtil).GetMethod("ThrowAmbigousMatch")),
+                        Expression.Equal(costVar.Expression, bestCost), Expression.Assign(bestCase, Expression.Constant(-2)),
                         Expression.IfThen(
                             Expression.LessThan(costVar.Expression, bestCost),
                                 Expression.Block(Expression.Assign(bestCost, costVar.Expression), Expression.Assign(bestCase, Expression.Constant(caseI)))))));
             }
 
+            instrs.Add(Expression.IfThen(Expression.Equal(bestCase, Expression.Constant(-2)), Expression.Call(typeof(RuntimeUtil).GetMethod("ThrowAmbigousMatch"))));
             instrs.Add(Expression.IfThen(Expression.Equal(bestCase, Expression.Constant(-1)), Expression.Call(typeof(RuntimeUtil).GetMethod("ThrowNoMatch"))));
             // instrs.Add(Expression.Call(typeof(RuntimeUtil).GetMethod("DebugPrintInt"), Expression.Constant("bestCase"), bestCase));
 

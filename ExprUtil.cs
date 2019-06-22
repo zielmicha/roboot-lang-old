@@ -35,8 +35,8 @@ namespace MetaComputer.Compiler {
         }
 
         public static object EvaluateNow(Expression expr) { // Expression
-            var stmt = Expression.Lambda<Func<object>>(ExprUtil.DeclareAllVariables(expr)).Compile();
-            return stmt();
+            var stmt = Expression.Lambda<Func<object>>(ExprUtil.DeclareAllVariables(expr));
+            return stmt.Compile()();
         }
 
         public static Expression EvalOnce(Expression value, ICollection<Expression> instrs) {

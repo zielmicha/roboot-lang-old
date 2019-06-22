@@ -4,7 +4,7 @@ namespace MetaComputer.Runtime {
     using System.Linq;
     using MetaComputer.Util;
 
-    class Module {
+    public class Module {
         private List<Module> importedModules = new List<Module>();
         private Dictionary<string, object> values = new Dictionary<string, object>();
 

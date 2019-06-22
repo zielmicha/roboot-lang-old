@@ -4,7 +4,7 @@ namespace MetaComputer.Compiler {
     using System.Linq.Expressions;
     using MetaComputer.Runtime;
 
-    class Value {
+    public class Value {
         private Value _type;
 
         public Value Type {

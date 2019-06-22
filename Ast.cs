@@ -5,7 +5,7 @@ namespace MetaComputer.Ast {
     using System.Linq.Expressions;
     using MetaComputer.Util;
 
-    class Location {
+    public class Location {
         public string Filename;
         public int StartLine;
         public int StartColumn;
@@ -23,29 +23,29 @@ namespace MetaComputer.Ast {
         }
     }
 
-    abstract class Node {
+    abstract public class Node {
         public Location Location { get; set; }
     }
 
-    abstract class BlockStmt : Node {
+    abstract public class BlockStmt : Node {
     }
 
-    abstract class Expr : Node {
+    abstract public class Expr : Node {
     }
 
-    class ModuleStmt : Node {
+    public class ModuleStmt : Node {
 
     }
 
-    class ModuleDefStmt : ModuleStmt {
+    public class ModuleDefStmt : ModuleStmt {
         public List<ModuleStmt> Body;
     }
 
-    class ModuleLetStmt : ModuleStmt {
+    public class ModuleLetStmt : ModuleStmt {
 
     }
 
-    class BlockLet : BlockStmt {
+    public class BlockLet : BlockStmt {
         public readonly string Name;
         public readonly Expr Type;
         public readonly Expr Value;
@@ -59,7 +59,7 @@ namespace MetaComputer.Ast {
 
     //
 
-    class Param : Expr {
+    public class Param : Expr {
         public readonly string Name;
         public readonly Expr Value;
         public readonly bool IsNamed;
@@ -75,7 +75,7 @@ namespace MetaComputer.Ast {
         }
     }
 
-    class Params : Expr {
+    public class Params : Expr {
         public readonly IReadOnlyList<Param> ParamList;
 
         public Params(IReadOnlyList<Param> paramList) {
@@ -83,7 +83,7 @@ namespace MetaComputer.Ast {
         }
     }
     
-    class Call : Expr {
+    public class Call : Expr {
         public readonly Expr Func;
         public readonly IReadOnlyList<Expr> Args;
         public readonly IReadOnlyList<KeyValuePair<string, Expr>> NamedArgs;
@@ -105,13 +105,13 @@ namespace MetaComputer.Ast {
         public override string ToString() {
             var parameters = new List<String>();
             parameters.AddRange(Args.Select(x => x == null ? "null" : x.ToString()));
-            parameters.AddRange(NamedArgs.Select(x => "~{x.Item0}:{x.Item1}"));
+            parameters.AddRange(NamedArgs.Select(x => $"~{x.Key}:{x.Value}"));
             var p = string.Join(" ", parameters);
-            return $"({Func} {p})";
+            return $"(call {Func} {p})";
         }
     }
 
-    class Block : Expr {
+    public class Block : Expr {
         public readonly IReadOnlyList<BlockStmt> Stmts;
 
         public Block(List<BlockStmt> stmts) {
@@ -119,7 +119,7 @@ namespace MetaComputer.Ast {
         }
     }
 
-    class IntLiteral : Expr {
+    public class IntLiteral : Expr {
         public readonly Int64 Value;
 
         public IntLiteral(Int64 val) {
@@ -131,7 +131,7 @@ namespace MetaComputer.Ast {
         }
     }
 
-    class StringLiteral : Expr {
+    public class StringLiteral : Expr {
         public readonly string Value;
 
         public StringLiteral(string val) {
@@ -139,7 +139,7 @@ namespace MetaComputer.Ast {
         }
     }
 
-    class Name : Expr {
+    public class Name : Expr {
         public readonly string Str;
 
         public Name(string str) {
@@ -151,11 +151,11 @@ namespace MetaComputer.Ast {
         }
     }
 
-    class FunDefExpr : Expr {
+    public class FunDefExpr : Expr {
         public Expr Body;
     }
 
-    class MatchCase : Node {
+    public class MatchCase : Node {
         public readonly List<(string name, Expr type)> ImplicitVariables;
         public readonly Expr MatchedValue;
         public readonly Expr Body;
@@ -170,7 +170,7 @@ namespace MetaComputer.Ast {
 
     // "Native"
 
-    class NativeValue : Expr {
+    public class NativeValue : Expr {
         public readonly object Value;
 
         public NativeValue(object value) {
@@ -178,7 +178,7 @@ namespace MetaComputer.Ast {
         }
     }
 
-    class CallNative : Expr {
+    public class CallNative : Expr {
         public readonly LambdaExpression Func;
         public readonly IReadOnlyList<Type> ArgTypes;
         public readonly Type ReturnType;

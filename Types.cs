@@ -1,13 +1,13 @@
 namespace MetaComputer.Runtime {
     using System.Collections.Generic;
 
-    class UnitValue {
+    public class UnitValue {
         private UnitValue() {}
 
         public static UnitValue Instance = new UnitValue();
     }
 
-    class Params {
+    public class Params {
         public readonly IReadOnlyList<object> Arguments;
 
         public readonly IReadOnlyDictionary<string, object> NamedArguments;
@@ -18,15 +18,15 @@ namespace MetaComputer.Runtime {
         }
     }
 
-    interface ICallable {
+    public interface ICallable {
         object Call(Params parameters);
     }
     
-    class AnyType {
+    public class AnyType {
         public static object Instance = typeof(object);
     }
 
-    class ExactType {
+    public class ExactType {
         public object Value { get; }
 
         public ExactType(object value) {

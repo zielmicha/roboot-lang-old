@@ -7,11 +7,11 @@ namespace MetaComputer.Runtime {
     using MetaComputer.Ast;
 
     [System.AttributeUsage(System.AttributeTargets.Method)]
-    class NativeMethod : System.Attribute {
+    public class NativeMethod : System.Attribute {
         public string Name { get; set; } = "";
     }
 
-    class NativeModule : Module {
+    public class NativeModule : Module {
         public void RegisterNativeMethod<T>(string name, Expression<T> e) {
             RegisterMethod(name, new Method(name, WrapNativeFunc(e)));
         }

@@ -5,7 +5,7 @@ namespace MetaComputer.Runtime {
     using System.Linq.Expressions;
     using MetaComputer.Util;
 
-    class MethodCase {
+    public class MethodCase {
         public readonly Compiler.FunctionScope Scope;
         public readonly Ast.MatchCase Body;
 
@@ -15,7 +15,7 @@ namespace MetaComputer.Runtime {
         }
     }
 
-    class Method : ICallable {
+    public class Method : ICallable {
         public Method(string name, MethodCase implementation) : this(name) {
             this.Implementations.Add(implementation);
         }
@@ -51,7 +51,8 @@ namespace MetaComputer.Runtime {
             var body = Compiler.FunctionCompiler.CompileMatchCases(Compiler.Value.Dynamic(parameters), Implementations.Select(impl => (new Compiler.FunctionCompiler(impl.Scope), impl.Body)).ToList());
             var paramList = new List<ParameterExpression>() { parameters };
             // Console.WriteLine("body: " + Util.ExpressionStringBuilder.ExpressionToString(body.Expression));
-            return (Func<Params, object>)Expression.Lambda(Compiler.ExprUtil.DeclareAllVariables(body.Expression, paramList), paramList).Compile();
+            var lambda = Expression.Lambda(Compiler.ExprUtil.DeclareAllVariables(body.Expression, paramList), this.Name, paramList);
+            return RuntimeContext.CurrentContext.AssemblyBuilder.AddMethod(lambda).CreateDelegate<Func<Params, object>>();
         }
     }
 }

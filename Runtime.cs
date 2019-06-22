@@ -4,19 +4,21 @@ namespace MetaComputer.Runtime {
     using System.Threading;
     using MetaComputer.Util;
 
-    class Environment {
+    public class Environment {
         public BaseModule BaseModule;
     }
 
-    class Context {
+    public class Context {
         public Environment Env;
+
+        public Compiler.ExpressionAssemblyBuilder AssemblyBuilder = new Compiler.ExpressionAssemblyBuilder();
     }
 
-    class ConflictException : Exception {
+    public class ConflictException : Exception {
         ConflictException(string message) : base(message) {}
     }
 
-    class RuntimeContext {
+    public static class RuntimeContext {
         private static ThreadLocal<Context> ContextStorage = new ThreadLocal<Context>();
 
         public static Context CurrentContext {
@@ -26,9 +28,13 @@ namespace MetaComputer.Runtime {
         public static Environment CurrentEnv {
             get { return CurrentContext.Env; }
         }
+
+        public static void InitThread() {
+            ContextStorage.Value = new Context();
+        }
     }
 
-    class RuntimeUtil {
+    public class RuntimeUtil {
         public static void ThrowBadCoercion(object source, object target) {
             throw new Exception($"cannot coerce {source} (type: {source.GetType()}) into {target}");
         }
