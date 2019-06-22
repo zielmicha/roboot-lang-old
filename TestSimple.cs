@@ -1,9 +1,9 @@
-namespace MetaComputer.Tests {
+namespace Roboot.Tests {
     using System;
-    using MetaComputer.Ast;
-    using MetaComputer.AstBuilder;
-    using MetaComputer.Runtime;
-    using MetaComputer.Compiler;
+    using Roboot.Ast;
+    using Roboot.AstBuilder;
+    using Roboot.Runtime;
+    using Roboot.Compiler;
 
     class TestSimple {
         static void Main(string[] args) {

@@ -1,12 +1,12 @@
-namespace MetaComputer.Compiler {
+namespace Roboot.Compiler {
     using System;
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.Reflection;
     using System.Linq;
     using System.Linq.Expressions;
-    using MetaComputer.Runtime;
-    using MetaComputer.Ast;
+    using Roboot.Runtime;
+    using Roboot.Ast;
 
     public interface IScope {
         Value Lookup(string name);
@@ -239,10 +239,10 @@ namespace MetaComputer.Compiler {
             return Value.Unit(expr);
         }
 
-        public readonly static Guid MetaComputerLanguageGuid = Guid.Parse("50d39029-86bc-4787-8817-2404811cf8ac");
+        public readonly static Guid RobootLanguageGuid = Guid.Parse("50d39029-86bc-4787-8817-2404811cf8ac");
 
         public DebugInfoExpression MakeDebugInfo(Location loc) {
-            var docInfo = Expression.SymbolDocument(loc.Filename, MetaComputerLanguageGuid);
+            var docInfo = Expression.SymbolDocument(loc.Filename, RobootLanguageGuid);
             return Expression.DebugInfo(docInfo, loc.StartLine, loc.StartColumn, loc.EndLine, loc.EndColumn);
         }
 

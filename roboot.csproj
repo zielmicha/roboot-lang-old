@@ -17,9 +17,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Antlr4 Include="McGrammar.g4">
+    <Antlr4 Include="RobootGrammar.g4">
       <Generator>MSBuild:Compile</Generator>
-      <CustomToolNamespace>MetaComputer.Grammar</CustomToolNamespace>
+      <CustomToolNamespace>Roboot.Grammar</CustomToolNamespace>
       <Listener>false</Listener>
       <Visitor>true</Visitor>
     </Antlr4>

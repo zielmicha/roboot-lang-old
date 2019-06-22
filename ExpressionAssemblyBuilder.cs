@@ -1,4 +1,4 @@
-namespace MetaComputer.Compiler {
+namespace Roboot.Compiler {
     using System;
     using System.Collections.Generic;
     using System.Diagnostics.SymbolStore;
@@ -86,7 +86,7 @@ namespace MetaComputer.Compiler {
 
         public ExpressionAssemblyBuilder() {
             AssemblyName assemblyName = new AssemblyName();
-            assemblyName.Name = "MetaComputerProgram";
+            assemblyName.Name = "RobootProgram";
             assemblyBuilder = Thread.GetDomain().DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.RunAndSave); // or RunAndSave/RunAndCollect
 
             Type daType = typeof(DebuggableAttribute);
@@ -97,7 +97,7 @@ namespace MetaComputer.Compiler {
                     DebuggableAttribute.DebuggingModes.Default });
             assemblyBuilder.SetCustomAttribute(daBuilder);
 
-            moduleBuilder = assemblyBuilder.DefineDynamicModule("metacomputerprogram", "MetaComputerProgram.dll", true);
+            moduleBuilder = assemblyBuilder.DefineDynamicModule("metacomputerprogram", "RobootProgram.dll", true);
         }
         
         public CompiledMethod AddMethod(LambdaExpression lambda) {

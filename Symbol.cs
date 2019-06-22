@@ -1,4 +1,4 @@
-namespace MetaComputer.Runtime {
+namespace Roboot.Runtime {
     struct Symbol {
         public string Str { get; }
 

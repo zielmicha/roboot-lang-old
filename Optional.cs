@@ -1,4 +1,4 @@
-namespace MetaComputer.Util
+namespace Roboot.Util
 {
     using System;
 

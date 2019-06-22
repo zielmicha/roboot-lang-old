@@ -1,4 +1,4 @@
-namespace MetaComputer.Util {
+namespace Roboot.Util {
 // based on ExpressionStringBuilder from stdlib
 
     using System;

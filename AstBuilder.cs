@@ -1,26 +1,26 @@
-namespace MetaComputer.AstBuilder {
+namespace Roboot.AstBuilder {
     using System;
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.Linq;
-    using MetaComputer.Grammar;
-    using MetaComputer.Ast;
+    using Roboot.Grammar;
+    using Roboot.Ast;
     using Antlr4.Runtime;
     using Antlr4.Runtime.Tree;
 
     class AstBuilder {
-        public static McGrammarParser CreateParser(string fileName, string data) {
+        public static RobootGrammarParser CreateParser(string fileName, string data) {
             // var input = File.ReadAllText("examples/simple.mco");
             var inputStream = new AntlrInputStream(data);
             inputStream.name = fileName;
-            var lexer = new McGrammarLexer(inputStream);
-            var parser = new McGrammarParser(new CommonTokenStream(lexer));
+            var lexer = new RobootGrammarLexer(inputStream);
+            var parser = new RobootGrammarParser(new CommonTokenStream(lexer));
             parser.AddErrorListener(new ConsoleErrorListener());
             parser.ErrorHandler = new BailErrorStrategy();
             return parser;
         }
 
-        public static Expr ParseExpr(McGrammarParser parser) {
+        public static Expr ParseExpr(RobootGrammarParser parser) {
             var parseTree = parser.expr();
             return new ExprVisitor().Visit(parseTree);
         }
@@ -46,7 +46,7 @@ namespace MetaComputer.AstBuilder {
         }
     }
     
-    internal class ExprVisitor : McGrammarBaseVisitor<Expr> {
+    internal class ExprVisitor : RobootGrammarBaseVisitor<Expr> {
         public override Expr Visit(IParseTree i) {
             Expr result = base.Visit(i);
             if (result.Location == null)
@@ -54,35 +54,35 @@ namespace MetaComputer.AstBuilder {
             return result;
         }
 
-        public override Expr VisitFundef_expr(McGrammarParser.Fundef_exprContext e) {
+        public override Expr VisitFundef_expr(RobootGrammarParser.Fundef_exprContext e) {
             throw new ArgumentException("invalid fundef");
         }
 
-        public override Expr VisitExpr3(McGrammarParser.Expr3Context e) {
+        public override Expr VisitExpr3(RobootGrammarParser.Expr3Context e) {
             return VisitExprN(e.children);
         }
 
-        public override Expr VisitExpr4(McGrammarParser.Expr4Context e) {
+        public override Expr VisitExpr4(RobootGrammarParser.Expr4Context e) {
             return VisitExprN(e.children);
         }
 
-        public override Expr VisitExpr5(McGrammarParser.Expr5Context e) {
+        public override Expr VisitExpr5(RobootGrammarParser.Expr5Context e) {
             return VisitExprN(e.children);
         }
 
-        public override Expr VisitExpr6(McGrammarParser.Expr6Context e) {
+        public override Expr VisitExpr6(RobootGrammarParser.Expr6Context e) {
             return VisitExprN(e.children);
         }
 
-        public override Expr VisitExpr7(McGrammarParser.Expr7Context e) {
+        public override Expr VisitExpr7(RobootGrammarParser.Expr7Context e) {
             return VisitExprN(e.children);
         }
 
-        public override Expr VisitExpr8(McGrammarParser.Expr8Context e) {
+        public override Expr VisitExpr8(RobootGrammarParser.Expr8Context e) {
             return VisitExprN(e.children);
         }
 
-        public override Expr VisitExpr9(McGrammarParser.Expr9Context e) {
+        public override Expr VisitExpr9(RobootGrammarParser.Expr9Context e) {
             if (e.children.Count == 2) {
                 Debug.Assert(e.children[0].GetText() == "-");
                 return new Call(
@@ -93,22 +93,22 @@ namespace MetaComputer.AstBuilder {
             }
         }
 
-        public override Expr VisitAtom(McGrammarParser.AtomContext e) {
+        public override Expr VisitAtom(RobootGrammarParser.AtomContext e) {
             var value = e.children[0];
             if (value is ITerminalNode terminalNode) {
-                if (terminalNode.Symbol.Type == McGrammarLexer.INT)
+                if (terminalNode.Symbol.Type == RobootGrammarLexer.INT)
                     return new IntLiteral(Int64.Parse(terminalNode.ToString()));
             }
 
             return VisitChildren(e);
         }
 
-        public override Expr VisitIdent(McGrammarParser.IdentContext e) {
+        public override Expr VisitIdent(RobootGrammarParser.IdentContext e) {
             var node = (ITerminalNode)e.children[0];
             return new Name(node.ToString());
         }
         
-        public override Expr VisitExpr_atom(McGrammarParser.Expr_atomContext e) {
+        public override Expr VisitExpr_atom(RobootGrammarParser.Expr_atomContext e) {
             if (e.children[0] is ITerminalNode terminalNode) {
                 if (terminalNode.GetText() == "(")
                     return Visit(e.children[1]);
@@ -131,15 +131,15 @@ namespace MetaComputer.AstBuilder {
             );
         }
 
-        public override Expr VisitFuncall(McGrammarParser.FuncallContext e) {
+        public override Expr VisitFuncall(RobootGrammarParser.FuncallContext e) {
             if (e.children.Count == 1) {
                 return Visit(e.children[0]);
             } else {
-                var arguments = new List<McGrammarParser.FuncallargContext>();
-                McGrammarParser.FuncallContext current = e;
+                var arguments = new List<RobootGrammarParser.FuncallargContext>();
+                RobootGrammarParser.FuncallContext current = e;
                 while (current.children.Count > 1) {
-                    arguments.Add((McGrammarParser.FuncallargContext)current.children[1]);
-                    current = (McGrammarParser.FuncallContext)current.children[0];
+                    arguments.Add((RobootGrammarParser.FuncallargContext)current.children[1]);
+                    current = (RobootGrammarParser.FuncallContext)current.children[0];
                 }
                 var funExpr = Visit(current);
 

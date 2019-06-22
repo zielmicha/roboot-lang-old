@@ -1,4 +1,4 @@
-grammar McGrammar;
+grammar RobootGrammar;
 
 INT : [0-9]+ ;
 
