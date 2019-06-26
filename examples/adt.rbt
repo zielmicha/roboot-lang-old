@@ -1,0 +1,55 @@
+
+module Optional1 {
+    # Tagged type union
+
+    type None T = Unit;
+    type Some T = T;
+
+    type MyOptional T = typeUnion (None T) (Some T);
+
+    fun isSome ~~T (x:MyOptional T) =>
+        match x (
+           (None T) Unit => false;
+           ~~y (Some T) y => true;
+        );
+
+    fun isSome2 ~~T (x:MyOptional T) =>
+        match x (
+           (Some T) _ => true;
+           _ => false;
+        );
+
+    fun isSome3 (x:MyOptional _) =>
+        match x (
+           (Some _) _ => true;
+           _ => false;
+        );
+
+    fun isSome4 (x:Some _) => true;
+    fun isSome4 (x:None _) => false;
+
+    fun get (x:MyOptional _) =>
+        match x (
+           (Some _) x => x;
+           _ => error("get on None");
+        );
+
+    fun get1 ~~y ((Some _) y) => true;
+    fun get1 (_:None _) => false;
+}
+
+
+module Optional2 {
+    # Sugar for types in Optional1
+
+    type MyOptional T = taggedTypeUnion
+        ~None:Unit
+        ~Some:T;
+}
+
+module Ast1 {
+    type Node = inhertiable struct {
+        lineNumber: int;
+
+    };
+}

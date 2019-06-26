@@ -50,7 +50,8 @@ namespace Roboot.Runtime {
             var parameters = Expression.Parameter(typeof(Params), "parameters");
             var body = Compiler.FunctionCompiler.CompileMatchCases(Compiler.Value.Dynamic(parameters), Implementations.Select(impl => (new Compiler.FunctionCompiler(impl.Scope), impl.Body)).ToList());
             var paramList = new List<ParameterExpression>() { parameters };
-            // Console.WriteLine("body: " + Util.ExpressionStringBuilder.ExpressionToString(body.Expression));
+            // if (Name == "parseInt")
+            //    Console.WriteLine("body: " + Util.ExpressionStringBuilder.ExpressionToString(body.Expression));
             var lambda = Expression.Lambda(Compiler.ExprUtil.DeclareAllVariables(body.Expression, paramList), this.Name, paramList);
             return RuntimeContext.CurrentContext.AssemblyBuilder.AddMethod(lambda).CreateDelegate<Func<Params, object>>();
         }

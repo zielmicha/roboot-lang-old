@@ -1,0 +1,8 @@
+
+
+fun merge a b => (
+  if (a.empty) b
+  else if (b.empty) []
+  else if (a.front < b.front) [a.front] ++ (merge a.tail b)
+  else [b.front] ++ (merge a b.tail)
+);

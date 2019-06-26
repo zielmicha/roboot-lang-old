@@ -2,7 +2,7 @@ grammar RobootGrammar;
 
 INT : [0-9]+ ;
 
-OP3 : '|' ;
+OP3 : '|' | '.';
 OP4 : 'and' | 'or' | 'xor' ;
 OP5 : ('=' | '<' | '>' | '!') ('.' | '+' | '-' | '=' | '>' | '<' | '/' | '*')+
     | '<' | '>';
@@ -63,7 +63,6 @@ funcallarg :
     '~' ident ':' expr10;
 
 expr10 : expr10 '[' (expr_tuple | expr |) ']' | // translated to getItem
-        expr10 '.' ident | // translated to getField
         expr_atom;
 
 expr_atom : '(' expr_tuple ')' |
@@ -80,13 +79,15 @@ if_expr : 'if' expr '{' expr_block '}' ('else' '{' expr_block '}')?;
 struct_expr : 'struct' '{' struct_field* '}';
 struct_field : ident ':' expr ';';
 
-atom : INT | ident;
+atom : INT | STRING | ident;
 
 ident : QUOTED_IDENT | IDENT;
 
 WS : [ \t\n] -> skip ;
 INLINE_COMMENT : '/*' .*? '*/' -> skip ;
 BLOCK_COMMENT : '#' .*? '\n' -> skip ;
+
+STRING : ["] ~["]* ["];
 
 IDENT : [a-zA-Z_] [a-zA-Z0-9_]* ;
 QUOTED_IDENT : '\'' [^\']* '\'';

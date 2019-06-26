@@ -5,7 +5,7 @@ namespace Roboot.Runtime {
     using Roboot.Util;
 
     public class Environment {
-        public BaseModule BaseModule;
+        public Module BaseModule;
     }
 
     public class Context {
@@ -66,6 +66,11 @@ namespace Roboot.Runtime {
 
             cost = -1;
             return null;
+        }
+
+        public Type AsClrType(object o) {
+            if (o is Type t) return t;
+            return typeof(object);
         }
     }
 }

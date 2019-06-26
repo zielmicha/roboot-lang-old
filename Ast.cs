@@ -96,7 +96,7 @@ namespace Roboot.Ast {
                 .ToList());
         }
 
-        public Call(Expr func, List<Expr> args, List<KeyValuePair<string, Expr>> namedArgs = null) {
+        public Call(Expr func, IReadOnlyList<Expr> args, IReadOnlyList<KeyValuePair<string, Expr>> namedArgs = null) {
             this.Func = func;
             this.Args = args;
             this.NamedArgs = namedArgs ?? new List<KeyValuePair<string, Expr>>();
@@ -136,6 +136,10 @@ namespace Roboot.Ast {
 
         public StringLiteral(string val) {
             this.Value = val;
+        }
+
+        public override string ToString() {
+            return "\"" + Value + "\"";
         }
     }
 

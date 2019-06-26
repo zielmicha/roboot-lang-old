@@ -1,0 +1,11 @@
+import SingleProcess # stdin doesn't make sense in networked Roboot programs
+
+fun main => (
+    # read ints from stdin and sum
+    stdin $ read $ split | parseInt $ sum $ print;
+    stdin $ read $ split $ map parseInt $ sum $ print;
+    print (sum (map ~f:parseInt (split (read stdin))));
+
+    # read ints from stdin and sum positive ones
+    stdin $ read $ split | parseInt $ filter (x => x > 0) $ sum $ print;
+);

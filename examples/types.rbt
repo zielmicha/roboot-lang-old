@@ -1,0 +1,33 @@
+
+
+type MyList T = struct (
+    head: T;
+    tail: T;
+);
+
+# persistence
+
+type User = struct (
+    name: string;
+    email: string @(persistentName "email");
+    credits: int @(default 0);
+);
+
+type MyStack T = struct (
+    @persistentName "MyStackV2";
+    values: Array T;
+);
+
+# this type could use ADT
+
+type MyStackV1 T = struct (
+    @persistentName "MyStack";
+    value: T;
+    next: Optional (MyStackV1 T);
+);
+
+# if could be replaced with match
+fun myStackV1ToV2 ~~T (src:MyStackV1 T) : MyStack T =>
+    (MyStack T) ~values:([src.value] + (if (src.next.isSome) src.net.get.myStackV1ToV2 else []))
+
+coercion ~cost:0 ~attrib:[persistentCoercion] ~f:myStackV1ToV2;

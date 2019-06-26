@@ -1,4 +1,4 @@
-(defconst metacomputer-mode-syntax-table
+(defconst roboot-mode-syntax-table
   (let ((table (make-syntax-table)))
     ;; ' is a string delimiter
     (modify-syntax-entry ?' "\"" table)
@@ -20,12 +20,12 @@
 
     table))
 
-(setq metacomputer-highlights
-      '(("\\b\\(module\\|if\\|else\\|fun\\|let\\|val\\|method_base\\|struct\\|return\\|import\\|include\\)\\b" . font-lock-keyword-face)))
+(setq roboot-highlights
+      '(("\\b\\(module\\|if\\|else\\|fun\\|let\\|letmut\\|val\\|methodbase\\|while\\|struct\\|return\\|import\\|include\\|type\\|coercion\\|match\\)\\b" . font-lock-keyword-face)))
 
-(define-derived-mode metacomputer-mode prog-mode "MetaComputer mode"
-  :syntax-table metacomputer-mode-syntax-table
-  (setq font-lock-defaults '(metacomputer-highlights))
+(define-derived-mode roboot-mode prog-mode "Roboot mode"
+  :syntax-table roboot-mode-syntax-table
+  (setq font-lock-defaults '(roboot-highlights))
 
   (set (make-local-variable 'indent-line-function) 'js-indent-line)
   (set (make-local-variable 'comment-start) "# ")

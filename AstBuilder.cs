@@ -98,6 +98,11 @@ namespace Roboot.AstBuilder {
             if (value is ITerminalNode terminalNode) {
                 if (terminalNode.Symbol.Type == RobootGrammarLexer.INT)
                     return new IntLiteral(Int64.Parse(terminalNode.ToString()));
+
+                if (terminalNode.Symbol.Type == RobootGrammarLexer.STRING) {
+                    string s = terminalNode.ToString();
+                    return new StringLiteral(s.Substring(1, s.Count() - 2));
+                }
             }
 
             return VisitChildren(e);
@@ -125,6 +130,27 @@ namespace Roboot.AstBuilder {
             Debug.Assert(e.Count == 3);
 
             string op = e[1].GetText();
+
+            if (op == "." || op == "|") {
+                var firstExpr = Visit(e[0]);
+                List<Expr> firstArgs = null;
+                if (op == ".") firstArgs = new List<Expr>(){ firstExpr };
+                if (op == "|") firstArgs = new List<Expr>(){ new Name("map"), firstExpr };
+                var rhs = Visit(e[2]);
+                if (rhs is Call call) {
+                    return new Call(
+                        func: call.Func,
+                        args: firstArgs.Concat(call.Args).ToList(),
+                        namedArgs: call.NamedArgs
+                    );
+                } else {
+                    return new Call(
+                        func: rhs,
+                        args: firstArgs
+                    );
+                }
+            }
+            
             return new Call(
                 func: new Name(op),
                 args: new List<Expr>() { Visit(e[0]), Visit(e[2]) }

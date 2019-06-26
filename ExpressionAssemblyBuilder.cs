@@ -11,15 +11,15 @@ namespace Roboot.Compiler {
     using System.Threading;
 
     public class CompiledMethod {
-        private MethodInfo methodInfo;
+        public readonly MethodInfo MethodInfo;
 
         public CompiledMethod(MethodInfo methodInfo) {
             Debug.Assert(methodInfo != null);
-            this.methodInfo = methodInfo;
+            this.MethodInfo = methodInfo;
         }
 
         public T CreateDelegate<T>() {
-            return (T) (object) Delegate.CreateDelegate(typeof(T), methodInfo);
+            return (T) (object) Delegate.CreateDelegate(typeof(T), MethodInfo);
         }
     }
 
@@ -97,7 +97,7 @@ namespace Roboot.Compiler {
                     DebuggableAttribute.DebuggingModes.Default });
             assemblyBuilder.SetCustomAttribute(daBuilder);
 
-            moduleBuilder = assemblyBuilder.DefineDynamicModule("metacomputerprogram", "RobootProgram.dll", true);
+            moduleBuilder = assemblyBuilder.DefineDynamicModule("robootprogram", "RobootProgram.dll", true);
         }
         
         public CompiledMethod AddMethod(LambdaExpression lambda) {

@@ -21,7 +21,11 @@ namespace Roboot.Runtime {
     public interface ICallable {
         object Call(Params parameters);
     }
-    
+
+    public class Never {
+        private Never() {}
+    }
+
     public class AnyType {
         public static object Instance = typeof(object);
     }
