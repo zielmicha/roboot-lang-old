@@ -1,9 +1,11 @@
 namespace Roboot.Tests {
     using System;
+    using System.Collections.Immutable;
     using Roboot.Ast;
     using Roboot.AstBuilder;
     using Roboot.Runtime;
     using Roboot.Compiler;
+    using Microsoft.VisualStudio.TestTools.UnitTesting;
 
     class TestSimple {
         static void Main(string[] args) {
@@ -12,14 +14,22 @@ namespace Roboot.Tests {
             // var cmd = new Microsoft.Data.Sqlite.SqliteCommand("create table foo (a int)", db);
             // cmd.ExecuteNonQuery();
             RuntimeContext.InitThread();
-            Console.WriteLine(EvalCode("(1+2+(3-7) == -1) == true"));
-            Console.WriteLine(EvalCode("(abs (-1))"));
-            Console.WriteLine(EvalCode("10 div 2"));
-            Console.WriteLine(EvalCode("Array Int"));
-            Console.WriteLine(EvalCode("(0).abs"));
-            Console.WriteLine(EvalCode("\"foobar\""));
-            Console.WriteLine(EvalCode("parseInt \"5\""));
-            //Console.WriteLine(EvalCode("\"12345\"|parseInt"));
+            Assert.AreEqual(EvalCode("(1+2+(3-7) == -1) == true"), true);
+            Assert.AreEqual(EvalCode("(abs (-1))"), 1L);
+            Assert.AreEqual(EvalCode("10 div 2"), 5L);
+            Assert.AreEqual(EvalCode("Array Int"), typeof(IImmutableList<Int64>));
+            Assert.AreEqual(EvalCode("(0).abs"), 0L);
+            Assert.AreEqual(EvalCode("\"foobar\""), "foobar");
+            Assert.AreEqual(EvalCode("parseInt \"5\""), 5L);
+            //Assert.AreEqual(RuntimeUtil.MakeList(new long[] {1, 2, 3}), RuntimeUtil.MakeList(new long[] {1, 2, 3}));
+            //Assert.AreEqual(EvalCode("[1, 2, 3]"), RuntimeUtil.MakeList(new long[] {1, 2, 3}));
+            Assert.AreEqual(EvalCode("if true (1) else (2)"), 1L);
+            Assert.AreEqual(EvalCode("(1, 2)"), Tuple.Create(1L, 2L));
+            Assert.AreEqual(EvalCode("(1, )"), Tuple.Create(1L));
+            Assert.AreEqual(EvalCode("(let f=5; f)"), 5L);
+            Assert.AreEqual(EvalCode("(let a=1; let b=2; a+b)"), 3L);
+            Assert.AreEqual(EvalCode("(let a: Int=1; let b=2; a+b)"), 3L);
+            // Console.WriteLine(EvalCode("\"123\"|parseInt"));
         }
 
         static object EvalCode(string code) {

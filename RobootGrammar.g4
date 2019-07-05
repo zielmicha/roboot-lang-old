@@ -10,7 +10,7 @@ OP6 : '..' ;
 OP7 : '+';
 OP8 : (('*' | '/') ('.' | '+' | '-' | '=' | '>' | '<' | '/' | '*')*) | 'div' | 'mod' ;
 
-program : module_def_stmt*;
+module : module_def_stmt*;
 
 module_def_stmt : 'module' ident '{' ((module_stmt ';')+ module_stmt? | module_stmt) '}';
 
@@ -63,19 +63,22 @@ funcallarg :
     '~' ident ':' expr10;
 
 expr10 : expr10 '[' (expr_tuple | expr |) ']' | // translated to getItem
-        expr_atom;
+         expr11;
+expr11: if_expr | expr_atom;
 
 expr_atom : '(' expr_tuple ')' |
-    '{' expr_block '}' |
+    '[' expr_tuple ']' |
+    '(' expr_block ')' |
     '(' expr ')' |
-    if_expr |
     struct_expr |
     atom;
 
+expr_in_parens : '(' expr_block ')' |
+    '(' expr ')';
 expr_tuple : (expr ',')+ expr?;
-expr_block : block_stmt | (block_stmt ';')+ block_stmt?;
+expr_block : (block_stmt ';')+ block_stmt?;
 
-if_expr : 'if' expr '{' expr_block '}' ('else' '{' expr_block '}')?;
+if_expr : 'if' expr_atom expr_atom ('else' expr_atom)?;
 struct_expr : 'struct' '{' struct_field* '}';
 struct_field : ident ':' expr ';';
 

@@ -9,9 +9,9 @@ namespace Roboot.Compiler {
     using Roboot.Ast;
 
     class ModuleLoader {
-        private readonly Module module;
+        private readonly Runtime.Module module;
 
-        public ModuleLoader(Module module) {
+        public ModuleLoader(Runtime.Module module) {
             this.module = module;
         }
 

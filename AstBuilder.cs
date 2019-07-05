@@ -5,6 +5,7 @@ namespace Roboot.AstBuilder {
     using System.Linq;
     using Roboot.Grammar;
     using Roboot.Ast;
+    using Roboot.Util;
     using Antlr4.Runtime;
     using Antlr4.Runtime.Tree;
 
@@ -23,6 +24,29 @@ namespace Roboot.AstBuilder {
         public static Expr ParseExpr(RobootGrammarParser parser) {
             var parseTree = parser.expr();
             return new ExprVisitor().Visit(parseTree);
+        }
+
+        public static List<ModuleStmt> ParseModule(RobootGrammarParser parser) {
+            var parseTree = parser.module();
+            return parseTree.children.Select(x => ToModuleStmt((RobootGrammarParser.Module_stmtContext)x)).ToList();
+        }
+
+        private static ModuleStmt ToModuleStmt(RobootGrammarParser.Module_stmtContext e) {
+            var visitor = new ExprVisitor();
+            switch (e.children[0]) {
+                case RobootGrammarParser.Let_stmtContext letStmt:
+                    var name = ((Name)visitor.Visit(letStmt.children[1])).Str;
+                    if (letStmt.children.Count == 4)
+                        return new ModuleLetStmt(name: name,
+                                                 type: Optional<Expr>.None(),
+                                                 value: visitor.Visit(letStmt.children[3]));
+                    else
+                        return new ModuleLetStmt(name: name,
+                                                 type: Optional<Expr>.Some(visitor.Visit(letStmt.children[3])),
+                                                 value: visitor.Visit(letStmt.children[5]));
+
+            }
+            throw new ArgumentException("unknown module stmt {e.children[0].GetType()}");
         }
     }
 
@@ -45,13 +69,41 @@ namespace Roboot.AstBuilder {
             };
         }
     }
-    
+
     internal class ExprVisitor : RobootGrammarBaseVisitor<Expr> {
         public override Expr Visit(IParseTree i) {
             Expr result = base.Visit(i);
             if (result.Location == null)
                 result.Location = MakeLocationUtil.MakeLocation((ParserRuleContext)i);
             return result;
+        }
+
+        public override Expr VisitExpr_block(RobootGrammarParser.Expr_blockContext e) {
+            var result = new List<BlockStmt>();
+            for (var i=0; i < e.children.Count; i += 2) {
+                var node = e.children[i];
+                result.Add(this.VisitBlockStmt((RobootGrammarParser.Block_stmtContext)node));
+            }
+            return new Block(result);
+        }
+
+        private BlockStmt VisitBlockStmt(RobootGrammarParser.Block_stmtContext e) {
+            switch (e.children[0]) {
+                case RobootGrammarParser.ExprContext expr:
+                    return new BlockExpr(Visit(expr));
+                case RobootGrammarParser.Let_stmtContext letStmt:
+                    var name = ((Name)Visit(letStmt.children[1])).Str;
+                    if (letStmt.children.Count == 4)
+                        return new BlockLet(name: name,
+                                            type: Optional<Expr>.None(),
+                                            value: Visit(letStmt.children[3]));
+                    else
+                        return new BlockLet(name: name,
+                                            type: Optional<Expr>.Some(Visit(letStmt.children[3])),
+                                            value: Visit(letStmt.children[5]));
+
+            }
+            throw new ArgumentException($"unknown blockstmt {e.children[0].GetType()}");
         }
 
         public override Expr VisitFundef_expr(RobootGrammarParser.Fundef_exprContext e) {
@@ -112,15 +164,42 @@ namespace Roboot.AstBuilder {
             var node = (ITerminalNode)e.children[0];
             return new Name(node.ToString());
         }
-        
+
+        public override Expr VisitIf_expr(RobootGrammarParser.If_exprContext e) {
+            return new If(
+                cond: Visit(e.children[1]),
+                then: Visit(e.children[2]),
+                else_: e.children.Count == 3 ? Optional<Expr>.None() : Optional<Expr>.Some(Visit(e.children[4]))
+            );
+        }
+
         public override Expr VisitExpr_atom(RobootGrammarParser.Expr_atomContext e) {
             if (e.children[0] is ITerminalNode terminalNode) {
-                if (terminalNode.GetText() == "(")
-                    return Visit(e.children[1]);
+                if (terminalNode.GetText() == "(") {
+                    if (e.children[1] is RobootGrammarParser.Expr_tupleContext itemCtx) {
+                        return new MakeTuple(VisitExprTuple(itemCtx));
+                    } else {
+                        return Visit(e.children[1]);
+                    }
+                }
 
+                if (terminalNode.GetText() == "[") {
+                    return new MakeList(
+                        VisitExprTuple((RobootGrammarParser.Expr_tupleContext)e.children[1])
+                    );
+                }
+                
                 throw new ArgumentException($"unknown expr_atom {e.GetText()}");
             }
             return VisitChildren(e);
+        }
+
+        private List<Expr> VisitExprTuple(RobootGrammarParser.Expr_tupleContext e) {
+            List<Expr> result = new List<Expr>();
+            for (var i=0; i < e.children.Count; i += 2) {
+                result.Add(Visit(e.children[i]));
+            }
+            return result;
         }
 
         private Expr VisitExprN(IList<IParseTree> e) {

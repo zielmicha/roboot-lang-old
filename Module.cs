@@ -1,6 +1,7 @@
 namespace Roboot.Runtime {
     using System;
     using System.Collections.Generic;
+    using System.Reflection;
     using System.Linq;
     using Roboot.Util;
 
@@ -61,5 +62,19 @@ namespace Roboot.Runtime {
 
             return Optional<object>.Some(MergeCandidates(candidates, name));
         }
+
+        public void LoadRobootCode(Assembly assembly, string resourcePath) {
+            byte[] data;
+            using (var stream = assembly.GetManifestResourceStream(resourcePath)) {
+                data = new byte[stream.Length];
+                stream.Read(data, 0, (int)stream.Length);
+            }
+            LoadRobootCode("embedded://" + resourcePath, System.Text.Encoding.UTF8.GetString(data));
+        }
+
+        public void LoadRobootCode(string path, string data) {
+            new Compiler.ModuleLoader(this).LoadCode(path, data);
+        }
+
     }
 }

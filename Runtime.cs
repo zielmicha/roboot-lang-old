@@ -1,5 +1,6 @@
 namespace Roboot.Runtime {
     using System;
+    using System.Collections.Immutable;
     using System.Collections.Generic;
     using System.Threading;
     using Roboot.Util;
@@ -49,6 +50,10 @@ namespace Roboot.Runtime {
 
         public static void DebugPrintInt(string msg, int value) {
             Console.WriteLine($"DebugPrintInt {msg} {value}");
+        }
+
+        public static IImmutableList<T> MakeList<T>(T[] values) {
+            return ImmutableList<T>.Empty.AddRange(values);
         }
 
         public static object Coerce(object source, object target, out int cost) {

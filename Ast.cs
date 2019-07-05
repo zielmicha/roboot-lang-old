@@ -34,26 +34,44 @@ namespace Roboot.Ast {
     }
 
     public class ModuleStmt : Node {
-
     }
 
     public class ModuleDefStmt : ModuleStmt {
-        public List<ModuleStmt> Body;
+        public readonly string Name;
+
+        public readonly List<ModuleStmt> Body;
     }
 
     public class ModuleLetStmt : ModuleStmt {
+        public readonly string Name;
 
+        public readonly Expr Value;
+
+        public readonly Optional<Expr> Type;
+
+        public ModuleLetStmt(string name, Expr value, Optional<Expr> type) {
+            this.Name = name;
+            this.Value = value;
+            this.Type = type;
+        }
     }
 
     public class BlockLet : BlockStmt {
         public readonly string Name;
-        public readonly Expr Type;
+        public readonly Optional<Expr> Type;
         public readonly Expr Value;
 
-        public BlockLet(string name, Expr type, Expr value) {
+        public BlockLet(string name, Optional<Expr> type, Expr value) {
             this.Name = name;
             this.Type = type;
             this.Value = value;
+        }
+
+        public override string ToString() {
+            if (this.Type.IsSome())
+                return $"(let {this.Name} :{this.Type.Get()} {this.Value})";
+            else
+                return $"(let {this.Name} {this.Value})";
         }
     }
 
@@ -111,11 +129,51 @@ namespace Roboot.Ast {
         }
     }
 
+    public class MakeList : Expr {
+        public readonly IReadOnlyList<Expr> Items;
+
+        public MakeList(IReadOnlyList<Expr> items) {
+            this.Items = items;
+        }
+
+        public override string ToString() {
+            return $"(list {string.Join(" ", Items)})";
+        }
+    }
+
+    public class MakeTuple : Expr {
+        public readonly IReadOnlyList<Expr> Items;
+
+        public MakeTuple(IReadOnlyList<Expr> items) {
+            this.Items = items;
+        }
+
+        public override string ToString() {
+            return $"(tuple {string.Join(" ", Items)})";
+        }
+    }
+    
     public class Block : Expr {
         public readonly IReadOnlyList<BlockStmt> Stmts;
 
         public Block(List<BlockStmt> stmts) {
             this.Stmts = stmts;
+        }
+
+        public override string ToString() {
+            return $"(block {string.Join(" ", Stmts)})";
+        }
+    }
+
+    public class BlockExpr : BlockStmt {
+        public readonly Expr Expr;
+
+        public BlockExpr(Expr expr) {
+            this.Expr = expr;
+        }
+
+        public override string ToString() {
+            return this.Expr.ToString();
         }
     }
 
@@ -172,6 +230,18 @@ namespace Roboot.Ast {
         }
     }
 
+    public class If : Expr {
+        public Expr Cond;
+        public Expr Then;
+        public Optional<Expr> Else;
+
+        public If(Expr cond, Expr then, Optional<Expr> else_) {
+            this.Cond = cond;
+            this.Then = then;
+            this.Else = else_;
+        }
+    }
+
     // "Native"
 
     public class NativeValue : Expr {
@@ -189,9 +259,10 @@ namespace Roboot.Ast {
 
         public readonly IReadOnlyList<Expr> Args;
 
-        public CallNative(LambdaExpression func, IReadOnlyList<Expr> args) {
+        public CallNative(LambdaExpression func, IReadOnlyList<Expr> args, Type returnType) {
             this.Func = func;
             this.Args = args;
+            this.ReturnType = returnType;
         }
     }
 }

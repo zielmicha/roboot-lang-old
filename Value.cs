@@ -1,10 +1,13 @@
 namespace Roboot.Compiler {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Linq.Expressions;
     using Roboot.Runtime;
 
     public class Value {
+        private Value() {}
+
         private Value _type;
 
         public Value Type {
@@ -12,7 +15,7 @@ namespace Roboot.Compiler {
                 if (_type != null)
                     return _type;
                 else if (ImmediateValue != null)
-                    return Immediate(new ExactType(ImmediateValue));
+                    return Immediate(ImmediateValue.GetType()); // return Immediate(new ExactType(ImmediateValue));
                 else
                     throw new ArgumentException("null type and no ImmediateValue?");
             }
@@ -39,11 +42,20 @@ namespace Roboot.Compiler {
             return Type.AsClrType();
         }
 
+        public static Value Unit() {
+            return Value.Immediate(UnitValue.Instance);
+        }
+
         public static Value Unit(Expression expression) {
             return Dynamic(Expression.Block(expression, Expression.Constant(UnitValue.Instance)));
         }
 
         public static Value Dynamic(Expression expression, Value type=null) {
+            if (type != null && type.AsClrType() != expression.Type) {
+                throw new ArgumentException($"CLR type mismatch expected={type.AsClrType()} actual={expression.Type}");
+            }
+            if (expression.Type == typeof(void)) throw new ArgumentException("expression has void type");
+
             return new Value {
                 _type = type ?? Immediate(expression.Type),
                 Expression = expression,
@@ -66,6 +78,16 @@ namespace Roboot.Compiler {
             return Value.Dynamic(
                 Expression.Block(expr1),
                 val.Type);
+        }
+
+        public override string ToString() {
+            if (ImmediateValue != null)
+                return $"Value({ImmediateValue})";
+
+            if (Type.ImmediateValue != null)
+                return $"Value(of type {Type.ImmediateValue})";
+
+            return "Value";
         }
     }
 

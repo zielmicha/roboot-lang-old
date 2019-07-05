@@ -1,6 +1,7 @@
 namespace Roboot.Compiler {
     using System;
     using System.Collections.Generic;
+    using System.Collections.Immutable;
     using System.Diagnostics;
     using System.Reflection;
     using System.Linq;
@@ -70,6 +71,9 @@ namespace Roboot.Compiler {
             if (expr.Location == null)
                 return v;
 
+            if (v.ImmediateValue != null)
+                return v;
+
             return Value.Dynamic(
                 Expression.Block(
                     MakeDebugInfo(expr.Location),
@@ -79,29 +83,20 @@ namespace Roboot.Compiler {
         public Value CompileBlockStmt(BlockStmt stmt) {
             switch (stmt) {
                 case BlockLet s: return CompileBlockStmt(s);
+                case BlockExpr e: return CompileExpr(e.Expr);
                 default:
                     throw new Exception("unknown AST node " + stmt.GetType());
             }
         }
 
-        public bool? AreEqual(Value a, Value b) {
-            if (a == b)
-                return true;
-            if (a.ImmediateValue != null && b.ImmediateValue != null && a.ImmediateValue == b.ImmediateValue)
-                return true;
-            return null;
-        }
-        
         public (Value success, Value cost, Value value) CompileCoerce(Value x, Value type) {
-            if (type.ImmediateValue != null) {
-                if (AreEqual(x.Type, type) == true)
-                    return (Value.Immediate(true), Value.Immediate(0), x);
-            }
+            if (AreEqual(x.Type, type) == true)
+                return (Value.Immediate(true), Value.Immediate(0), x);
 
             // TODO: develop sophisticated Dijkstra-algorithm based user defined coercion system
 
             var cost = Expression.Parameter(typeof(int), "cost");
-            Expression e = Expression.Call(typeof(RuntimeUtil).GetMethod("Coerce"), x.Expression, type.Expression, cost);
+            Expression e = Expression.Call(typeof(RuntimeUtil).GetMethod("Coerce"), Expression.Convert(x.Expression, typeof(object)), type.Expression, cost);
 
             var instrs = new List<Expression>();
             e = ExprUtil.EvalOnce(e, instrs);
@@ -110,10 +105,18 @@ namespace Roboot.Compiler {
 
         public Value CompileCoerceOrThrow(Value x, Value type) {
             var result = CompileCoerce(x, type);
-            return Value.Dynamic(Expression.IfThenElse(
-                result.success.Expression,
-                x.Expression,
-                Expression.Call(typeof(RuntimeUtil).GetMethod("ThrowBadCoercion"), x.Expression, type.Expression)), type: result.success.Type);
+
+            // Console.WriteLine($"convert {x} to {type} success {result.success}");
+            if (AreEqual(result.success, Value.Immediate(true)) == true)
+                return Value.Dynamic(Expression.Convert(x.Expression, type.AsClrType()), type: type);
+
+            return Value.Dynamic(Expression.Block(
+                Expression.IfThen(result.success.Expression, Expression.Call(typeof(RuntimeUtil).GetMethod("ThrowBadCoercion"), Expression.Convert(x.Expression, typeof(object)), type.Expression)),
+                result.value.Expression), type: result.value.Type);
+        }
+
+        public Value CompileCoerceOrThrow(Value x, Type type) {
+            return CompileCoerceOrThrow(x, Value.Immediate(type));
         }
 
         public Value CompileEq(Value a, Value b) {
@@ -233,7 +236,8 @@ namespace Roboot.Compiler {
 
         public Value CompileBlockStmt(BlockLet stmt) {
             Value v = CompileExpr(stmt.Value);
-            v = CompileCoerceOrThrow(v, CompileExpr(stmt.Type));
+            if (stmt.Type.IsSome())
+                v = CompileCoerceOrThrow(v, CompileExpr(stmt.Type.Get()));
             Expression expr = scope.CreateVariable(stmt.Name, v);
 
             return Value.Unit(expr);
@@ -256,6 +260,9 @@ namespace Roboot.Compiler {
                 case Ast.Params e: return CompileExpr(e);
                 case NativeValue e: return CompileExpr(e);
                 case CallNative e: return CompileExpr(e);
+                case MakeList e: return CompileExpr(e);
+                case MakeTuple e: return CompileExpr(e);
+                case If e: return CompileExpr(e);
                 default:
                     throw new Exception("unknown AST node " + expr.GetType());
             }
@@ -317,6 +324,41 @@ namespace Roboot.Compiler {
             var named = ExprUtil.CreateCollection<Dictionary<string, object>>(parameters.ParamList.Where(param => param.IsNamed)
                 .Select(param => ExprUtil.CreateKeyValuePair<string, object>(Expression.Constant(param.Name), Expression.Convert(CompileExpr(param.Value).Expression, typeof(object)))));
             return Value.Dynamic(Expression.New(typeof(Runtime.Params).GetConstructors()[0], positional, named));
+        }
+
+        public Value CompileExpr(MakeList e) {
+            Type itemType = typeof(object);
+            var instrs = new List<Expression>();
+            var arrayVar = Expression.Parameter(itemType.MakeArrayType(), "listBuilder");
+            var listType = typeof(IImmutableList<>).MakeGenericType(itemType);
+
+            instrs.Add(Expression.Assign(arrayVar, Expression.New(itemType.MakeArrayType().GetConstructor(new Type[]{typeof(int)}), Expression.Constant(e.Items.Count))));
+
+            for (var i=0; i < e.Items.Count; i ++) {
+                var expr = CompileExpr(e.Items[i]);
+                instrs.Add(Expression.Assign(Expression.ArrayAccess(arrayVar, new Expression[]{Expression.Constant(i)}),
+                                             Expression.Convert(expr.Expression, itemType)));
+            }
+            
+            return Value.Seq(instrs, Value.Dynamic(Expression.Call(typeof(RuntimeUtil).GetMethod("MakeList").MakeGenericMethod(itemType), arrayVar)));
+        }
+
+        public Value CompileExpr(MakeTuple e) {
+            var values = e.Items.Select(x => CompileExpr(x)).ToList();
+            var t = ExprUtil.GetTupleType(values.Select(x => x.GetClrType()).ToArray());
+            return Value.Dynamic(Expression.New(t.GetConstructors()[0], values.Select(x => x.Expression).ToList()));
+        }
+
+        public Value CompileExpr(If e) {
+            Value elseValue = e.Else.IsSome() ? CompileExpr(e.Else.Get()) : Value.Unit();
+            Value ifValue = CompileExpr(e.Then);
+            Value commonType = GetCommonType(ifValue.Type, elseValue.Type);
+            Value condValue = CompileExpr(e.Cond);
+
+            var d = Value.Dynamic(Expression.Condition(CompileCoerceOrThrow(condValue, typeof(bool)).Expression,
+                                                       Expression.Convert(ifValue.Expression, commonType.AsClrType()),
+                                                       Expression.Convert(elseValue.Expression, commonType.AsClrType())), type: commonType);
+            return d;
         }
 
         public Value CompileExpr(FunDefExpr fundef) {

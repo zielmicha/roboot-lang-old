@@ -46,6 +46,10 @@ namespace Roboot.Runtime {
 
         private readonly Lazy<Func<Params, object>> Compiled;
 
+        public override string ToString() {
+            return $"Method {Name}";
+        }
+
         private Func<Params, object> Compile() {
             var parameters = Expression.Parameter(typeof(Params), "parameters");
             var body = Compiler.FunctionCompiler.CompileMatchCases(Compiler.Value.Dynamic(parameters), Implementations.Select(impl => (new Compiler.FunctionCompiler(impl.Scope), impl.Body)).ToList());

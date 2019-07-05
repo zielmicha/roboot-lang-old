@@ -6,6 +6,19 @@ namespace Roboot.Compiler {
     using System.Linq.Expressions;
 
     static class ExprUtil {
+        public static Type GetTupleType(Type[] types) {
+            switch (types.Count()) {
+                case 1: return typeof(Tuple<>).MakeGenericType(types);
+                case 2: return typeof(Tuple<,>).MakeGenericType(types);
+                case 3: return typeof(Tuple<,,>).MakeGenericType(types);
+                case 4: return typeof(Tuple<,,,>).MakeGenericType(types);
+                case 5: return typeof(Tuple<,,,,>).MakeGenericType(types);
+                case 6: return typeof(Tuple<,,,,,>).MakeGenericType(types);
+                case 7: return typeof(Tuple<,,,,,,>).MakeGenericType(types);
+            }
+            throw new Exception($"invalid number of values in tuple: {types.Count()}");
+        }
+
         public static Expression MakeList<T>(IEnumerable<Expression> expr) {
             NewExpression newExpr = Expression.New(typeof(List<T>));
             MethodInfo addMethod = typeof(List<T>).GetMethod("Add");
@@ -35,7 +48,7 @@ namespace Roboot.Compiler {
         }
 
         public static object EvaluateNow(Expression expr) { // Expression
-            var stmt = Expression.Lambda<Func<object>>(ExprUtil.DeclareAllVariables(expr));
+            var stmt = Expression.Lambda<Func<object>>(ExprUtil.DeclareAllVariables(Expression.Convert(expr, typeof(object))));
             return stmt.Compile()();
         }
 
