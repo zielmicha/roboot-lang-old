@@ -12,7 +12,7 @@ namespace Roboot.Ast {
         public int EndLine;
         public int EndColumn;
 
-        public Location() {}
+        public Location() { }
 
         public Location(string filename, int line) {
             this.Filename = filename;
@@ -84,7 +84,7 @@ namespace Roboot.Ast {
         public readonly bool IsOptional;
         public readonly Optional<Expr> DefaultValue;
 
-        public Param(string name, Expr value, bool isNamed=false, bool isOptional=false, Optional<Expr> defaultValue=default(Optional<Expr>)) {
+        public Param(string name, Expr value, bool isNamed = false, bool isOptional = false, Optional<Expr> defaultValue = default(Optional<Expr>)) {
             this.Name = name;
             this.Value = value;
             this.IsNamed = isNamed;
@@ -100,7 +100,7 @@ namespace Roboot.Ast {
             this.ParamList = paramList;
         }
     }
-    
+
     public class Call : Expr {
         public readonly Expr Func;
         public readonly IReadOnlyList<Expr> Args;
@@ -152,7 +152,7 @@ namespace Roboot.Ast {
             return $"(tuple {string.Join(" ", Items)})";
         }
     }
-    
+
     public class Block : Expr {
         public readonly IReadOnlyList<BlockStmt> Stmts;
 
@@ -213,8 +213,32 @@ namespace Roboot.Ast {
         }
     }
 
+    public enum ParamDefKind {
+        positional, named, implicit_
+    }
+
+    public class ParamDef : Expr {
+        public readonly string Name;
+        public readonly ParamDefKind Kind;
+        public readonly Optional<Expr> Type;
+        public readonly Optional<Expr> DefaultValue;
+
+        public ParamDef(string name, ParamDefKind kind, Optional<Expr> defaultValue = default(Optional<Expr>), Optional<Expr> type = default(Optional<Expr>)) {
+            this.Name = name;
+            this.Kind = kind;
+            this.DefaultValue = defaultValue;
+            this.Type = type;
+        }
+    }
+
     public class FunDefExpr : Expr {
-        public Expr Body;
+        public readonly IReadOnlyList<ParamDef> Params;
+        public readonly Expr Body;
+
+        public FunDefExpr(IReadOnlyList<ParamDef> params_, Expr body) {
+            this.Params = params_;
+            this.Body = body;
+        }
     }
 
     public class MatchCase : Node {
@@ -231,14 +255,32 @@ namespace Roboot.Ast {
     }
 
     public class If : Expr {
-        public Expr Cond;
-        public Expr Then;
-        public Optional<Expr> Else;
+        public readonly Expr Cond;
+        public readonly Expr Then;
+        public readonly Optional<Expr> Else;
 
         public If(Expr cond, Expr then, Optional<Expr> else_) {
             this.Cond = cond;
             this.Then = then;
             this.Else = else_;
+        }
+
+        public override string ToString() {
+            return $"(if {this.Cond} {this.Then} {this.Else.GetOrNull()})";
+        }
+    }
+
+    public class Coerce : Expr {
+        public readonly Expr Value;
+        public readonly Expr Type;
+
+        public Coerce(Expr value, Expr type) {
+            this.Value = value;
+            this.Type = Type;
+        }
+
+        public override string ToString() {
+            return $"(coerce {this.Value} {this.Type})";
         }
     }
 

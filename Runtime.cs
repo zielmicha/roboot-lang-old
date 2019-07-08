@@ -56,6 +56,11 @@ namespace Roboot.Runtime {
             return ImmutableList<T>.Empty.AddRange(values);
         }
 
+        public static T RunWithoutSideEffects<T>(Func<T> f) {
+            // TODO: implement
+            return f();
+        }
+
         public static object Coerce(object source, object target, out int cost) {
             if (target is Type targetType) {
                 if (source.GetType() == targetType) {

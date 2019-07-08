@@ -11,7 +11,6 @@ namespace Roboot.AstBuilder {
 
     class AstBuilder {
         public static RobootGrammarParser CreateParser(string fileName, string data) {
-            // var input = File.ReadAllText("examples/simple.mco");
             var inputStream = new AntlrInputStream(data);
             inputStream.name = fileName;
             var lexer = new RobootGrammarLexer(inputStream);
@@ -50,14 +49,12 @@ namespace Roboot.AstBuilder {
         }
     }
 
-    public class ConsoleErrorListener : IAntlrErrorListener<IToken>
-    {
-        public virtual void SyntaxError(IRecognizer recognizer, IToken offendingSymbol, int line, int charPositionInLine, string msg, RecognitionException e)
-        {
+    public class ConsoleErrorListener : IAntlrErrorListener<IToken> {
+        public virtual void SyntaxError(IRecognizer recognizer, IToken offendingSymbol, int line, int charPositionInLine, string msg, RecognitionException e) {
             Console.Error.WriteLine("line " + line + ":" + charPositionInLine + " " + msg);
         }
     }
-    
+
     static class MakeLocationUtil {
         public static Location MakeLocation(this ParserRuleContext ctx) {
             return new Location() {
@@ -80,7 +77,7 @@ namespace Roboot.AstBuilder {
 
         public override Expr VisitExpr_block(RobootGrammarParser.Expr_blockContext e) {
             var result = new List<BlockStmt>();
-            for (var i=0; i < e.children.Count; i += 2) {
+            for (var i = 0; i < e.children.Count; i += 2) {
                 var node = e.children[i];
                 result.Add(this.VisitBlockStmt((RobootGrammarParser.Block_stmtContext)node));
             }
@@ -107,7 +104,50 @@ namespace Roboot.AstBuilder {
         }
 
         public override Expr VisitFundef_expr(RobootGrammarParser.Fundef_exprContext e) {
-            throw new ArgumentException("invalid fundef");
+            var parameters = new List<IParseTree>();
+            if (e.children[0].GetText() == "(") {
+                for (int i=1; i < e.children.Count - 2; i ++)
+                    parameters.Add(e.children[i]);
+            } else {
+                parameters.Add(e.children[0]);
+            }
+
+            var body = Visit(e.children[e.children.Count - 1]);
+            return new FunDefExpr(parameters.Select(p => VisitParamDef((RobootGrammarParser.Fundef_argContext)p)).ToList(), body);
+        }
+
+        private ParamDef VisitParamDef(RobootGrammarParser.Fundef_argContext e) {
+            int pos = 0;
+            ParamDefKind kind = ParamDefKind.positional;
+            Optional<Expr> type = Optional<Expr>.None();
+            Optional<Expr> defaultValue = Optional<Expr>.None();
+            string name;
+
+            if (e.children[0].GetText() == "~") {
+                pos ++;
+                kind = ParamDefKind.named;
+            }
+            if (e.children[0].GetText() == "~~") {
+                pos ++;
+                kind = ParamDefKind.implicit_;
+            }
+
+            if (e.children[pos].GetText() == "(") {
+                name = e.children[pos + 1].GetText();
+                pos += 2;
+                if (e.children[pos].GetText() == ":") {
+                    type = Optional<Expr>.Some(Visit(e.children[pos + 1]));
+                    pos += 2;
+                }
+                if (e.children[pos].GetText() == "=") {
+                    defaultValue = Optional<Expr>.Some(Visit(e.children[pos + 1]));
+                    pos += 2;
+                }
+            } else {
+                name = e.children[pos].GetText();
+            }
+
+            return new ParamDef(name, kind, defaultValue, type);
         }
 
         public override Expr VisitExpr3(RobootGrammarParser.Expr3Context e) {
@@ -188,7 +228,7 @@ namespace Roboot.AstBuilder {
                         VisitExprTuple((RobootGrammarParser.Expr_tupleContext)e.children[1])
                     );
                 }
-                
+
                 throw new ArgumentException($"unknown expr_atom {e.GetText()}");
             }
             return VisitChildren(e);
@@ -196,7 +236,7 @@ namespace Roboot.AstBuilder {
 
         private List<Expr> VisitExprTuple(RobootGrammarParser.Expr_tupleContext e) {
             List<Expr> result = new List<Expr>();
-            for (var i=0; i < e.children.Count; i += 2) {
+            for (var i = 0; i < e.children.Count; i += 2) {
                 result.Add(Visit(e.children[i]));
             }
             return result;
@@ -213,8 +253,8 @@ namespace Roboot.AstBuilder {
             if (op == "." || op == "|") {
                 var firstExpr = Visit(e[0]);
                 List<Expr> firstArgs = null;
-                if (op == ".") firstArgs = new List<Expr>(){ firstExpr };
-                if (op == "|") firstArgs = new List<Expr>(){ new Name("map"), firstExpr };
+                if (op == ".") firstArgs = new List<Expr>() { firstExpr };
+                if (op == "|") firstArgs = new List<Expr>() { new Name("map"), firstExpr };
                 var rhs = Visit(e[2]);
                 if (rhs is Call call) {
                     return new Call(
@@ -229,7 +269,7 @@ namespace Roboot.AstBuilder {
                     );
                 }
             }
-            
+
             return new Call(
                 func: new Name(op),
                 args: new List<Expr>() { Visit(e[0]), Visit(e[2]) }

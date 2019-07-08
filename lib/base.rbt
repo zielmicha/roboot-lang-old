@@ -1,10 +1,1 @@
-
-#fun map (s:String) f => (
-#  if (f == "")
-#    []
-#  else
-#    [f s.front] ++ (map s.tail f)
-#);
-
-#fun map ~f c => map c f;
-let a = 5;
+let five = 5;
