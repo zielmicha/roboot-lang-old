@@ -10,9 +10,9 @@ OP6 : '..' ;
 OP7 : '+';
 OP8 : (('*' | '/') ('.' | '+' | '-' | '=' | '>' | '<' | '/' | '*')*) | 'div' | 'mod' ;
 
-module : module_stmt*;
+module : ((module_stmt ';')+ module_stmt? | module_stmt);
 
-module_def_stmt : 'module' ident '{' ((module_stmt ';')+ module_stmt? | module_stmt) '}';
+module_def_stmt : 'module' ident '{' module '}';
 
 module_stmt :
         method_base_stmt |

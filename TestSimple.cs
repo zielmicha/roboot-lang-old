@@ -32,7 +32,10 @@ namespace Roboot.Tests {
             Assert.AreEqual(EvalCode("if true 1 else 2"), 1L);
             Assert.AreEqual(EvalCode("if false 1 else 2"), 2L);
             Assert.AreEqual(EvalCode("5"), 5L);
-            Console.WriteLine(EvalCode("x => x + 1"));
+            Assert.AreEqual(EvalCode("(let f = (x => x + 1); f) 5"), 6L);
+            Assert.AreEqual(EvalCode("five"), 5L);
+            Console.WriteLine(EvalCode("inc"));
+            Assert.AreEqual(EvalCode("inc 5"), 6L);
             // Console.WriteLine(EvalCode("\"123\"|parseInt"));
         }
 

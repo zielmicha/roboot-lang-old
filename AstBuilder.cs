@@ -27,25 +27,32 @@ namespace Roboot.AstBuilder {
 
         public static List<ModuleStmt> ParseModule(RobootGrammarParser parser) {
             var parseTree = parser.module();
-            return parseTree.children.Select(x => ToModuleStmt((RobootGrammarParser.Module_stmtContext)x)).ToList();
+            var result = new List<ModuleStmt>();
+            for (int i = 0; i < parseTree.children.Count; i += 2)
+                result.Add(ToModuleStmt((RobootGrammarParser.Module_stmtContext)parseTree.children[i]));
+            return result;
         }
 
         private static ModuleStmt ToModuleStmt(RobootGrammarParser.Module_stmtContext e) {
             var visitor = new ExprVisitor();
             switch (e.children[0]) {
-                case RobootGrammarParser.Let_stmtContext letStmt:
-                    var name = ((Name)visitor.Visit(letStmt.children[1])).Str;
-                    if (letStmt.children.Count == 4)
-                        return new ModuleLetStmt(name: name,
-                                                 type: Optional<Expr>.None(),
-                                                 value: visitor.Visit(letStmt.children[3]));
-                    else
-                        return new ModuleLetStmt(name: name,
-                                                 type: Optional<Expr>.Some(visitor.Visit(letStmt.children[3])),
-                                                 value: visitor.Visit(letStmt.children[5]));
-
+                case RobootGrammarParser.Let_stmtContext letStmt: {
+                        var name = ((Name)visitor.Visit(letStmt.children[1])).Str;
+                        if (letStmt.children.Count == 4)
+                            return new ModuleLetStmt(name: name,
+                                                     type: Optional<Expr>.None(),
+                                                     value: visitor.Visit(letStmt.children[3]));
+                        else
+                            return new ModuleLetStmt(name: name,
+                                                     type: Optional<Expr>.Some(visitor.Visit(letStmt.children[3])),
+                                                     value: visitor.Visit(letStmt.children[5]));
+                    }
+                case RobootGrammarParser.Fun_stmtContext funStmt: {
+                        var name = ((Name)visitor.Visit(funStmt.children[1])).Str;
+                        return new ModuleFunStmt(name, (FunDefExpr)visitor.Visit(funStmt.children[2]));
+                    }
             }
-            throw new ArgumentException("unknown module stmt {e.children[0].GetType()}");
+            throw new ArgumentException($"unknown module stmt {e.children[0].GetType()}");
         }
     }
 
@@ -106,7 +113,7 @@ namespace Roboot.AstBuilder {
         public override Expr VisitFundef_expr(RobootGrammarParser.Fundef_exprContext e) {
             var parameters = new List<IParseTree>();
             if (e.children[0].GetText() == "(") {
-                for (int i=1; i < e.children.Count - 2; i ++)
+                for (int i = 1; i < e.children.Count - 2; i++)
                     parameters.Add(e.children[i]);
             } else {
                 parameters.Add(e.children[0]);
@@ -124,11 +131,11 @@ namespace Roboot.AstBuilder {
             string name;
 
             if (e.children[0].GetText() == "~") {
-                pos ++;
+                pos++;
                 kind = ParamDefKind.named;
             }
             if (e.children[0].GetText() == "~~") {
-                pos ++;
+                pos++;
                 kind = ParamDefKind.implicit_;
             }
 

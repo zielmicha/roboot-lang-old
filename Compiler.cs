@@ -8,6 +8,7 @@ namespace Roboot.Compiler {
     using System.Linq.Expressions;
     using Roboot.Runtime;
     using Roboot.Ast;
+    using Roboot.Util;
 
     public interface IScope {
         Value Lookup(string name);
@@ -50,14 +51,14 @@ namespace Roboot.Compiler {
         }
 
         public Value Lookup(string name) {
-            var v = this.Module.Lookup(name, includeLocal: true);
+            var v = this.Module.Lookup(name, true);
             if (v.IsNone())
                 throw new Exception($"no such name {name}");
 
             return Value.Immediate(v.Get());
         }
     }
-    
+
     partial class FunctionCompiler {
         private FunctionScope scope;
         private Dictionary<string, Value> implicitVars = new Dictionary<string, Value>();
@@ -65,7 +66,7 @@ namespace Roboot.Compiler {
         public FunctionCompiler(IScope parentScope) {
             scope = new FunctionScope(parentScope);
         }
-        
+
         public Value CompileExpr(Expr expr) {
             Value v = CompileExprDispatch(expr);
             if (expr.Location == null)
@@ -128,12 +129,12 @@ namespace Roboot.Compiler {
 
         public Expression CompileMatch(Value matchWith, Expr expr, LabelTarget failLabel) {
             switch (expr) {
-            case Ast.Params e:
-                return CompileMatch(matchWith, e, failLabel);
-            case Ast.Name e:
-                return CompileMatch(matchWith, e, failLabel);
-            default:
-                return CompileMatchValue(matchWith, expr, failLabel);
+                case Ast.Params e:
+                    return CompileMatch(matchWith, e, failLabel);
+                case Ast.Name e:
+                    return CompileMatch(matchWith, e, failLabel);
+                default:
+                    return CompileMatchValue(matchWith, expr, failLabel);
             }
         }
 
@@ -176,15 +177,19 @@ namespace Roboot.Compiler {
                 if (compiler.implicitVars[variable.name] == null) {
                     throw new Exception($"{variable.name} was not instantiated at {matchCase.Location}");
                 }
-                var coerceResult = compiler.CompileCoerce(compiler.implicitVars[variable.name],
-                                                          CompileExpr(variable.type));
+                var value = compiler.implicitVars[variable.name];
+                if (variable.type.IsSome()) {
+                    var coerceResult = compiler.CompileCoerce(value, CompileExpr(variable.type.Get()));
 
-                instr.Add(Expression.IfThenElse(
-                    coerceResult.success.Expression,
-                    Expression.Block(
-                        Expression.AddAssign(costVar, coerceResult.cost.Expression),
-                        scope.CreateVariable(variable.name, coerceResult.value)),
-                    Expression.Goto(failLabel)));
+                    instr.Add(Expression.IfThenElse(
+                        coerceResult.success.Expression,
+                        Expression.Block(
+                            Expression.AddAssign(costVar, coerceResult.cost.Expression),
+                            scope.CreateVariable(variable.name, coerceResult.value)),
+                        Expression.Goto(failLabel)));
+                } else {
+                    instr.Add(scope.CreateVariable(variable.name, value));
+                }
             }
 
             instr.Add(Expression.Assign(successVar, Expression.Constant(true)));
@@ -208,7 +213,7 @@ namespace Roboot.Compiler {
             instrs.Add(Expression.Assign(bestCase, Expression.Constant(-1)));
 
             var caseBodies = new List<Value>();
-            for (var caseI = 0; caseI < cases.Count; caseI ++) {
+            for (var caseI = 0; caseI < cases.Count; caseI++) {
                 var (compiler, matchCase) = cases[caseI];
                 var (sucessVar, costVar, caseBody) = compiler.CompileMatchCase(matchWith, matchCase);
                 caseBodies.Add(caseBody);
@@ -226,7 +231,7 @@ namespace Roboot.Compiler {
 
             var resultVar = Expression.Parameter(typeof(object), "result");
 
-            for (var caseI = 0; caseI < cases.Count; caseI ++) {
+            for (var caseI = 0; caseI < cases.Count; caseI++) {
                 instrs.Add(Expression.IfThen(Expression.Equal(bestCase, Expression.Constant(caseI)),
                                              Expression.Assign(resultVar, Expression.Convert(caseBodies[caseI].Expression, typeof(object)))));
             }
@@ -263,6 +268,7 @@ namespace Roboot.Compiler {
                 case MakeList e: return CompileExpr(e);
                 case MakeTuple e: return CompileExpr(e);
                 case If e: return CompileExpr(e);
+                case FunDefExpr e: return CompileExpr(e);
                 default:
                     throw new Exception("unknown AST node " + expr.GetType());
             }
@@ -302,7 +308,7 @@ namespace Roboot.Compiler {
                                              call.Args.Select(x => CompileExpr(x).Expression));
             return Value.Dynamic(callExpr, type: Value.Immediate(call.ReturnType));
         }
-        
+
         private Value CompileExpr(Call call) {
             var instrs = new List<Expression>();
             var value = CompileExpr(call.Func).EvalOnce(instrs);
@@ -332,14 +338,14 @@ namespace Roboot.Compiler {
             var arrayVar = Expression.Parameter(itemType.MakeArrayType(), "listBuilder");
             var listType = typeof(IImmutableList<>).MakeGenericType(itemType);
 
-            instrs.Add(Expression.Assign(arrayVar, Expression.New(itemType.MakeArrayType().GetConstructor(new Type[]{typeof(int)}), Expression.Constant(e.Items.Count))));
+            instrs.Add(Expression.Assign(arrayVar, Expression.New(itemType.MakeArrayType().GetConstructor(new Type[] { typeof(int) }), Expression.Constant(e.Items.Count))));
 
-            for (var i=0; i < e.Items.Count; i ++) {
+            for (var i = 0; i < e.Items.Count; i++) {
                 var expr = CompileExpr(e.Items[i]);
-                instrs.Add(Expression.Assign(Expression.ArrayAccess(arrayVar, new Expression[]{Expression.Constant(i)}),
+                instrs.Add(Expression.Assign(Expression.ArrayAccess(arrayVar, new Expression[] { Expression.Constant(i) }),
                                              Expression.Convert(expr.Expression, itemType)));
             }
-            
+
             return Value.Seq(instrs, Value.Dynamic(Expression.Call(typeof(RuntimeUtil).GetMethod("MakeList").MakeGenericMethod(itemType), arrayVar)));
         }
 
@@ -361,8 +367,25 @@ namespace Roboot.Compiler {
             return d;
         }
 
+        public MethodCase FundefToMethodCase(FunDefExpr fundef) {
+            // TODO: pass locals as 'closure slot' variables, not rely on Linq.Expressions compiler
+            var implicitVariables = fundef.Params.Select(paramDef => (name: paramDef.Name, type: paramDef.Type)).ToList();
+            var paramsValue = new Ast.Params(fundef.Params.Select(paramDef =>
+                new Param(
+                    name: paramDef.Name,
+                    value: new Name(paramDef.Name),
+                    isNamed: paramDef.Kind != ParamDefKind.positional,
+                    isOptional: paramDef.DefaultValue.IsSome(),
+                    defaultValue: paramDef.DefaultValue
+                )).ToList());
+            return new MethodCase(
+                scope: scope,
+                body: new MatchCase(implicitVariables: implicitVariables, matchedValue: paramsValue, body: fundef.Body));
+        }
+
         public Value CompileExpr(FunDefExpr fundef) {
-            return null;
+            var methodCase = FundefToMethodCase(fundef);
+            return Value.Immediate(new Method("anonymous", methodCase));
         }
 
         public Value CompileFunctionBody(Expr body, List<KeyValuePair<string, Value>> argValues) {

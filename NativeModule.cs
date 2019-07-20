@@ -9,7 +9,7 @@ namespace Roboot.Runtime {
 
     [System.AttributeUsage(System.AttributeTargets.Method)]
     public class NativeMethod : System.Attribute {
-        public NativeMethod(string name="") {
+        public NativeMethod(string name = "") {
             this.Name = name;
         }
 
@@ -32,14 +32,14 @@ namespace Roboot.Runtime {
             var parameters = method.GetParameters().Select(p => Expression.Parameter(p.ParameterType, p.Name)).ToList();
             return Expression.Lambda(Expression.Call(Expression.Constant(this), method, parameters), parameters);
         }
-        
+
         public void RegisterNativeMethod<T>(string name, Expression<T> e) {
             RegisterMethod(name, new Method(name, WrapNativeFunc(e)));
         }
 
         public MethodCase WrapNativeFunc(LambdaExpression e) {
             var matchCase = new MatchCase(
-                implicitVariables: e.Parameters.Select(p => (name: p.Name, type: (Expr)new NativeValue(p.Type))).ToList(),
+                implicitVariables: e.Parameters.Select(p => (name: p.Name, type: Optional<Expr>.Some((Expr)new NativeValue(p.Type)))).ToList(),
                 matchedValue: new Ast.Params(e.Parameters.Select(p => new Param(p.Name, new Name(p.Name))).ToList()),
                 body: new CallNative(e, e.Parameters.Select(p => new Name(p.Name)).ToList(), e.Body.Type)
             );

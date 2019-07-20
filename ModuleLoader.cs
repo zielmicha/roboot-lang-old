@@ -29,6 +29,9 @@ namespace Roboot.Compiler {
                 case ModuleLetStmt s:
                     LoadStmt(s);
                     return;
+                case ModuleFunStmt s:
+                    LoadStmt(s);
+                    return;
                 default:
                     throw new Exception($"unknown ModuleStmt {stmt}");
             }
@@ -37,6 +40,14 @@ namespace Roboot.Compiler {
         public void LoadStmt(ModuleLetStmt stmt) {
             object value = Evaluate(
                 stmt.Type.IsNone() ? stmt.Value : new Ast.Coerce(stmt.Value, stmt.Type.Get()));
+            module.SetValue(stmt.Name, value);
+        }
+
+        public void LoadStmt(ModuleFunStmt stmt) {
+            var compiler = new FunctionCompiler(new ModuleScope(this.module));
+            var methodCase = compiler.FundefToMethodCase(stmt.FunDef);
+
+            var value = new Method(stmt.Name, methodCase);
             module.SetValue(stmt.Name, value);
         }
 

@@ -56,6 +56,17 @@ namespace Roboot.Ast {
         }
     }
 
+    public class ModuleFunStmt : ModuleStmt {
+        public readonly string Name;
+
+        public readonly FunDefExpr FunDef;
+
+        public ModuleFunStmt(string name, FunDefExpr funDef) {
+            this.Name = name;
+            this.FunDef = funDef;
+        }
+    }
+
     public class BlockLet : BlockStmt {
         public readonly string Name;
         public readonly Optional<Expr> Type;
@@ -242,11 +253,11 @@ namespace Roboot.Ast {
     }
 
     public class MatchCase : Node {
-        public readonly List<(string name, Expr type)> ImplicitVariables;
+        public readonly List<(string name, Optional<Expr> type)> ImplicitVariables;
         public readonly Expr MatchedValue;
         public readonly Expr Body;
 
-        public MatchCase(List<(string name, Expr type)> implicitVariables,
+        public MatchCase(List<(string name, Optional<Expr> type)> implicitVariables,
                          Expr matchedValue, Expr body) {
             this.ImplicitVariables = implicitVariables;
             this.MatchedValue = matchedValue;

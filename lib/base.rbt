@@ -1,1 +1,5 @@
+fun inc x => x + 1;
+
 let five = 5;
+
+let six = 6;

@@ -53,6 +53,11 @@ namespace Roboot.Util
             return this.value;
         }
 
+        public T GetOrDefault(T def)
+        {
+            return this.value ?? def;
+        }
+
         public override bool Equals(object obj)
         {
             switch (obj)

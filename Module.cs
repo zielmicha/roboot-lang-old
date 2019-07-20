@@ -69,6 +69,7 @@ namespace Roboot.Runtime {
                 data = new byte[stream.Length];
                 stream.Read(data, 0, (int)stream.Length);
             }
+
             LoadRobootCode("embedded://" + resourcePath, System.Text.Encoding.UTF8.GetString(data));
         }
 
