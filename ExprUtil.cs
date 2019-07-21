@@ -39,12 +39,12 @@ namespace Roboot.Compiler {
 
         public static Expression CreateCollection<T>(IEnumerable<Expression> items) {
             return Expression.ListInit(
-                Expression.New(typeof(T).GetConstructor(new Type[]{})),
+                Expression.New(typeof(T).GetConstructor(new Type[] { })),
                 items.Select(x => Expression.ElementInit(typeof(T).GetMethod("Add"), x)).ToList());
         }
 
         public static Expression CreateKeyValuePair<K, V>(Expression a, Expression b) {
-            return Expression.New(typeof(KeyValuePair<K, V>).GetConstructor(new Type[]{typeof(K), typeof(V)}), a, b);
+            return Expression.New(typeof(KeyValuePair<K, V>).GetConstructor(new Type[] { typeof(K), typeof(V) }), a, b);
         }
 
         public static object EvaluateNow(Expression expr) { // Expression
@@ -58,7 +58,19 @@ namespace Roboot.Compiler {
             return param;
         }
 
-        public static BlockExpression DeclareAllVariables(Expression expr, List<ParameterExpression> except=null) {
+        public static Expression CheckedConvert(Expression value, Type targetType) {
+            var instrs = new List<Expression>();
+            value = EvalOnce(value, instrs);
+            instrs.Add(
+                Expression.IfThen(
+                    Expression.Not(Expression.TypeIs(value, targetType)),
+                    Expression.Call(typeof(Runtime.RuntimeUtil).GetMethod("ThrowBadDotnetConvert"), value, Expression.Constant(targetType))));
+            instrs.Add(
+                Expression.Convert(value, targetType));
+            return Expression.Block(instrs);
+        }
+
+        public static BlockExpression DeclareAllVariables(Expression expr, List<ParameterExpression> except = null) {
             List<ParameterExpression> alreadyDeclared = new List<ParameterExpression>();
             if (except != null) alreadyDeclared.AddRange(except);
             alreadyDeclared.AddRange(GetAllChildren(expr).OfType<LambdaExpression>().SelectMany(l => l.Parameters));
@@ -70,7 +82,7 @@ namespace Roboot.Compiler {
                 .OfType<ParameterExpression>()
                 .Distinct()
                 .Except(alreadyDeclared).ToList(),
-                new List<Expression>() {expr});
+                new List<Expression>() { expr });
         }
 
         public static IReadOnlyList<Expression> GetAllChildren(Expression expr) {

@@ -65,6 +65,10 @@ namespace Roboot.Ast {
             this.Name = name;
             this.FunDef = funDef;
         }
+
+        public override string ToString() {
+            return $"{Name} = {FunDef}";
+        }
     }
 
     public class BlockLet : BlockStmt {
@@ -240,6 +244,10 @@ namespace Roboot.Ast {
             this.DefaultValue = defaultValue;
             this.Type = type;
         }
+
+        public override string ToString() {
+            return $"({this.Name} {this.Kind} {this.Type} {this.DefaultValue})";
+        }
     }
 
     public class FunDefExpr : Expr {
@@ -249,6 +257,10 @@ namespace Roboot.Ast {
         public FunDefExpr(IReadOnlyList<ParamDef> params_, Expr body) {
             this.Params = params_;
             this.Body = body;
+        }
+
+        public override string ToString() {
+            return $"(fundef ({string.Join(" ", this.Params)}) {this.Body})";
         }
     }
 

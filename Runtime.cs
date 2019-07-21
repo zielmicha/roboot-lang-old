@@ -16,7 +16,7 @@ namespace Roboot.Runtime {
     }
 
     public class ConflictException : Exception {
-        ConflictException(string message) : base(message) {}
+        ConflictException(string message) : base(message) { }
     }
 
     public static class RuntimeContext {
@@ -38,6 +38,9 @@ namespace Roboot.Runtime {
     public class RuntimeUtil {
         public static void ThrowBadCoercion(object source, object target) {
             throw new Exception($"cannot coerce {source} (type: {source.GetType()}) into {target}");
+        }
+        public static void ThrowBadDotnetConvert(object source, object target) {
+            throw new Exception($"cannot convert {source} (type: {source.GetType()}) into {target}");
         }
 
         public static void ThrowAmbigousMatch() {

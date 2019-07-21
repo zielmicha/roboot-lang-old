@@ -105,15 +105,20 @@ namespace Roboot.Compiler {
         }
 
         public Value CompileCoerceOrThrow(Value x, Value type) {
+            var instrs = new List<Expression>();
+            x = x.EvalOnce(instrs);
             var result = CompileCoerce(x, type);
 
-            // Console.WriteLine($"convert {x} to {type} success {result.success}");
             if (AreEqual(result.success, Value.Immediate(true)) == true)
-                return Value.Dynamic(Expression.Convert(x.Expression, type.AsClrType()), type: type);
+                return Value.Seq(instrs, Value.Dynamic(Expression.Convert(result.value.Expression, type.AsClrType()), type: result.value.Type));
 
-            return Value.Dynamic(Expression.Block(
-                Expression.IfThen(result.success.Expression, Expression.Call(typeof(RuntimeUtil).GetMethod("ThrowBadCoercion"), Expression.Convert(x.Expression, typeof(object)), type.Expression)),
-                result.value.Expression), type: result.value.Type);
+            return Value.Seq(instrs, Value.Dynamic(
+                Expression.Block(
+                    Expression.IfThen(
+                        Expression.Not(result.success.Expression),
+                        Expression.Call(typeof(RuntimeUtil).GetMethod("ThrowBadCoercion"), Expression.Convert(x.Expression, typeof(object)), type.Expression)),
+                    result.value.Expression),
+                type: result.value.Type));
         }
 
         public Value CompileCoerceOrThrow(Value x, Type type) {
@@ -312,7 +317,7 @@ namespace Roboot.Compiler {
         private Value CompileExpr(Call call) {
             var instrs = new List<Expression>();
             var value = CompileExpr(call.Func).EvalOnce(instrs);
-            var valueCallable = Expression.Convert(value.Expression, typeof(ICallable)); // use Coerce?
+            var valueCallable = ExprUtil.CheckedConvert(value.Expression, typeof(ICallable)); // use Coerce?
             // TODO: special case when function is ImmediateValue
             // TODO: special case when function type is known
 

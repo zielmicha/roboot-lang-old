@@ -19,7 +19,7 @@ namespace Roboot.Compiler {
         }
 
         public T CreateDelegate<T>() {
-            return (T) (object) Delegate.CreateDelegate(typeof(T), MethodInfo);
+            return (T)(object)Delegate.CreateDelegate(typeof(T), MethodInfo);
         }
     }
 
@@ -50,9 +50,11 @@ namespace Roboot.Compiler {
 
         protected override System.Linq.Expressions.Expression VisitConstant(System.Linq.Expressions.ConstantExpression node) {
             if (!CanEmitILConstant(node.Type) && node.Value != null) {
-                string name = "const" + constantFields.Count;
-                constantFieldStorageType.DefineField(name, node.Type, FieldAttributes.Public | FieldAttributes.Static);
-                constantFields[node] = name;
+                if (!constantFields.ContainsKey(node)) {
+                    string name = "const" + constantFields.Count;
+                    constantFields[node] = name;
+                    constantFieldStorageType.DefineField(name, node.Type, FieldAttributes.Public | FieldAttributes.Static);
+                }
             }
             return node;
         }
@@ -70,7 +72,7 @@ namespace Roboot.Compiler {
             return node;
         }
     }
-    
+
     public class ExpressionAssemblyBuilder {
         private readonly AssemblyBuilder assemblyBuilder;
         private readonly ModuleBuilder moduleBuilder;
@@ -99,7 +101,7 @@ namespace Roboot.Compiler {
 
             moduleBuilder = assemblyBuilder.DefineDynamicModule("robootprogram", "RobootProgram.dll", true);
         }
-        
+
         public CompiledMethod AddMethod(LambdaExpression lambda) {
             int functionId = Interlocked.Increment(ref functionCounter);
             TypeBuilder typeBuilder = moduleBuilder.DefineType("Function" + functionId, TypeAttributes.Public | TypeAttributes.Class);

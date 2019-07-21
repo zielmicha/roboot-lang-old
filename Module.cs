@@ -70,7 +70,7 @@ namespace Roboot.Runtime {
                 stream.Read(data, 0, (int)stream.Length);
             }
 
-            LoadRobootCode("embedded://" + resourcePath, System.Text.Encoding.UTF8.GetString(data));
+            LoadRobootCode("embedded://" + resourcePath.Replace('.', '/') + ".rbt", System.Text.Encoding.UTF8.GetString(data));
         }
 
         public void LoadRobootCode(string path, string data) {

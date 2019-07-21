@@ -18,7 +18,7 @@ namespace Roboot.Tests {
             Assert.AreEqual(EvalCode("(abs (-1))"), 1L);
             Assert.AreEqual(EvalCode("10 div 2"), 5L);
             Assert.AreEqual(EvalCode("Array Int"), typeof(IImmutableList<Int64>));
-            Assert.AreEqual(EvalCode("(0).abs"), 0L);
+            Assert.AreEqual(EvalCode("0$abs"), 0L);
             Assert.AreEqual(EvalCode("\"foobar\""), "foobar");
             Assert.AreEqual(EvalCode("parseInt \"5\""), 5L);
             //Assert.AreEqual(RuntimeUtil.MakeList(new long[] {1, 2, 3}), RuntimeUtil.MakeList(new long[] {1, 2, 3}));
@@ -36,6 +36,11 @@ namespace Roboot.Tests {
             Assert.AreEqual(EvalCode("five"), 5L);
             Console.WriteLine(EvalCode("inc"));
             Assert.AreEqual(EvalCode("inc 5"), 6L);
+            Assert.AreEqual(EvalCode("(let f = (a b => a + b); f 1 2)"), 3L);
+            Assert.AreEqual(EvalCode("(let f = (g x => g x); let g = (x => x + 1); f g 2)"), 3L);
+            Assert.AreEqual(EvalCode("(let f = (g x => g x); let g = (x => x + 1); g $ f 2)"), 3L);
+            Assert.AreEqual(EvalCode("(fun f g x => g x; let g = (x => x + 1); g $ f 2)"), 3L);
+            Assert.AreEqual(EvalCode("slowAdd 5 6)"), 11L);
             // Console.WriteLine(EvalCode("\"123\"|parseInt"));
         }
 

@@ -95,29 +95,32 @@ namespace Roboot.AstBuilder {
             switch (e.children[0]) {
                 case RobootGrammarParser.ExprContext expr:
                     return new BlockExpr(Visit(expr));
-                case RobootGrammarParser.Let_stmtContext letStmt:
-                    var name = ((Name)Visit(letStmt.children[1])).Str;
-                    if (letStmt.children.Count == 4)
+                case RobootGrammarParser.Let_stmtContext letStmt: {
+                        var name = ((Name)Visit(letStmt.children[1])).Str;
+                        if (letStmt.children.Count == 4)
+                            return new BlockLet(name: name,
+                                                type: Optional<Expr>.None(),
+                                                value: Visit(letStmt.children[3]));
+                        else
+                            return new BlockLet(name: name,
+                                                type: Optional<Expr>.Some(Visit(letStmt.children[3])),
+                                                value: Visit(letStmt.children[5]));
+
+                    }
+                case RobootGrammarParser.Fun_stmtContext funDef: {
+                        var name = ((Name)Visit(funDef.children[1])).Str;
                         return new BlockLet(name: name,
                                             type: Optional<Expr>.None(),
-                                            value: Visit(letStmt.children[3]));
-                    else
-                        return new BlockLet(name: name,
-                                            type: Optional<Expr>.Some(Visit(letStmt.children[3])),
-                                            value: Visit(letStmt.children[5]));
-
+                                            value: Visit(funDef.children[2]));
+                    }
             }
             throw new ArgumentException($"unknown blockstmt {e.children[0].GetType()}");
         }
 
         public override Expr VisitFundef_expr(RobootGrammarParser.Fundef_exprContext e) {
             var parameters = new List<IParseTree>();
-            if (e.children[0].GetText() == "(") {
-                for (int i = 1; i < e.children.Count - 2; i++)
-                    parameters.Add(e.children[i]);
-            } else {
-                parameters.Add(e.children[0]);
-            }
+            for (int i = 0; i < e.children.Count - 2; i++)
+                parameters.Add(e.children[i]);
 
             var body = Visit(e.children[e.children.Count - 1]);
             return new FunDefExpr(parameters.Select(p => VisitParamDef((RobootGrammarParser.Fundef_argContext)p)).ToList(), body);
@@ -257,10 +260,10 @@ namespace Roboot.AstBuilder {
 
             string op = e[1].GetText();
 
-            if (op == "." || op == "|") {
+            if (op == "$" || op == "|") {
                 var firstExpr = Visit(e[0]);
                 List<Expr> firstArgs = null;
-                if (op == ".") firstArgs = new List<Expr>() { firstExpr };
+                if (op == "$") firstArgs = new List<Expr>() { firstExpr };
                 if (op == "|") firstArgs = new List<Expr>() { new Name("map"), firstExpr };
                 var rhs = Visit(e[2]);
                 if (rhs is Call call) {

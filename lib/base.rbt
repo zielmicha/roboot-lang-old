@@ -2,4 +2,6 @@ fun inc x => x + 1;
 
 let five = 5;
 
-let six = 6;
+fun slowAdd a b =>
+  if (a == 0) b
+  else (slowAdd (a - 1) (b + 1));

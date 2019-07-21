@@ -25,6 +25,7 @@ namespace Roboot.Compiler {
         }
 
         public void LoadStmt(ModuleStmt stmt) {
+            // Console.WriteLine($"load {stmt}");
             switch (stmt) {
                 case ModuleLetStmt s:
                     LoadStmt(s);

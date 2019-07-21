@@ -2,7 +2,7 @@ grammar RobootGrammar;
 
 INT : [0-9]+ ;
 
-OP3 : '|' | '.';
+OP3 : '|' | '$';
 OP4 : 'and' | 'or' | 'xor' ;
 OP5 : ('=' | '<' | '>' | '!') ('.' | '+' | '-' | '=' | '>' | '<' | '/' | '*')+
     | '<' | '>';
@@ -35,11 +35,12 @@ type_stmt : 'type' ident fundef_expr;
 block_stmt :
         expr |
         let_stmt |
+        fun_stmt |
         return_stmt;
 
 return_stmt : 'return' expr;
 
-fundef_expr : (fundef_arg | '(' fundef_arg* ')') '=>' expr;
+fundef_expr : (fundef_arg*) '=>' expr;
 fundef_arg :
         ('~'|'~~'|) ident |
         ('~'|'~~'|) '(' ident (':' expr)? ('=' expr)? ')';
@@ -63,6 +64,7 @@ funcallarg :
     '~' ident ':' expr10;
 
 expr10 : expr10 '[' (expr_tuple | expr |) ']' | // translated to getItem
+         expr10 '.' ident |
          expr11;
 expr11: if_expr | expr_atom;
 

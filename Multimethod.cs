@@ -19,8 +19,8 @@ namespace Roboot.Runtime {
         public Method(string name, MethodCase implementation) : this(name) {
             this.Implementations.Add(implementation);
         }
-        
-        public Method(string name, IEnumerable<MethodCase> implementations=null) {
+
+        public Method(string name, IEnumerable<MethodCase> implementations = null) {
             this.Name = name;
             if (implementations != null)
                 this.Implementations.AddRange(implementations);
@@ -30,7 +30,7 @@ namespace Roboot.Runtime {
         public object Call(Params parameters) {
             return Compiled.Value(parameters);
         }
-        
+
         public readonly List<MethodCase> Implementations = new List<MethodCase>();
 
         public readonly bool IsBase;
@@ -55,6 +55,7 @@ namespace Roboot.Runtime {
             var body = Compiler.FunctionCompiler.CompileMatchCases(Compiler.Value.Dynamic(parameters), Implementations.Select(impl => (new Compiler.FunctionCompiler(impl.Scope), impl.Body)).ToList());
             var paramList = new List<ParameterExpression>() { parameters };
             var lambda = Expression.Lambda(Compiler.ExprUtil.DeclareAllVariables(body.Expression, paramList), this.Name, paramList);
+            // Console.WriteLine("code: " + Util.ExpressionStringBuilder.ExpressionToString(lambda));
             return RuntimeContext.CurrentContext.AssemblyBuilder.AddMethod(lambda).CreateDelegate<Func<Params, object>>();
         }
     }
