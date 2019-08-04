@@ -37,7 +37,7 @@ namespace Roboot.AstBuilder {
             var visitor = new ExprVisitor();
             switch (e.children[0]) {
                 case RobootGrammarParser.Let_stmtContext letStmt: {
-                        var name = ((Name)visitor.Visit(letStmt.children[1])).Str;
+                        var name = visitor.VisitName(letStmt.children[1]);
                         if (letStmt.children.Count == 4)
                             return new ModuleLetStmt(name: name,
                                                      type: Optional<Expr>.None(),
@@ -48,8 +48,12 @@ namespace Roboot.AstBuilder {
                                                      value: visitor.Visit(letStmt.children[5]));
                     }
                 case RobootGrammarParser.Fun_stmtContext funStmt: {
-                        var name = ((Name)visitor.Visit(funStmt.children[1])).Str;
+                        var name = visitor.VisitName(funStmt.children[1]);
                         return new ModuleFunStmt(name, (FunDefExpr)visitor.Visit(funStmt.children[2]));
+                    }
+                case RobootGrammarParser.Datatype_stmtContext datatypeStmt: {
+                        var name = visitor.VisitName(datatypeStmt.children[1]);
+                        return new ModuleDataTypeStmt(name, (FunDefExpr)visitor.Visit(datatypeStmt.children[2]));
                     }
             }
             throw new ArgumentException($"unknown module stmt {e.children[0].GetType()}");
@@ -210,6 +214,20 @@ namespace Roboot.AstBuilder {
             return VisitChildren(e);
         }
 
+        public override Expr VisitStruct_expr(RobootGrammarParser.Struct_exprContext e) {
+            var fields = new List<StructField>();
+            for (int i = 2; i < e.children.Count - 1; i += 2) {
+                var item = (RobootGrammarParser.Struct_fieldContext)e.children[i];
+                fields.Add(new StructField(name: VisitName(item.children[0]),
+                                           type: Visit(item.children[2])));
+            }
+            return new Struct(fields);
+        }
+
+        public string VisitName(IParseTree e) {
+            return ((Name)Visit(e)).Str;
+        }
+
         public override Expr VisitIdent(RobootGrammarParser.IdentContext e) {
             var node = (ITerminalNode)e.children[0];
             return new Name(node.ToString());
@@ -263,8 +281,8 @@ namespace Roboot.AstBuilder {
             if (op == "$" || op == "|") {
                 var firstExpr = Visit(e[0]);
                 List<Expr> firstArgs = null;
-                if (op == "$") firstArgs = new List<Expr>() { firstExpr };
-                if (op == "|") firstArgs = new List<Expr>() { new Name("map"), firstExpr };
+                if (op == "|") firstArgs = new List<Expr>() { firstExpr };
+                if (op == "|.") firstArgs = new List<Expr>() { new Name("map"), firstExpr };
                 var rhs = Visit(e[2]);
                 if (rhs is Call call) {
                     return new Call(
@@ -306,7 +324,7 @@ namespace Roboot.AstBuilder {
                     if (arg.children.Count == 1) {
                         args.Add(Visit(arg));
                     } else {
-                        var argName = ((Name)Visit(arg.children[1])).Str;
+                        var argName = VisitName(arg.children[1]);
                         var argValue = Visit(arg.children[3]);
                         namedArgs.Add(new KeyValuePair<string, Expr>(argName, argValue));
                     }

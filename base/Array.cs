@@ -5,16 +5,16 @@ namespace Roboot.Base {
     using Roboot.Util;
     using Roboot.Runtime;
 
-    public class FlatImmutableList<T> {
-        private readonly Lazy<IImmutableList<T>> asTree;
+    // public class FlatImmutableList<T> {
+    //     private readonly Lazy<IImmutableList<T>> asTree;
 
-        private readonly T[] data;
-    }
+    //     private readonly T[] data;
+    // }
 
-    public class FlatImmutableSlice<T> {
-        private readonly FlatImmutableList<T> list;
+    // public class FlatImmutableSlice<T> {
+    //     private readonly FlatImmutableList<T> list;
 
-        private readonly int start;
-        private readonly int end;
-    }
+    //     private readonly int start;
+    //     private readonly int end;
+    // }
 }

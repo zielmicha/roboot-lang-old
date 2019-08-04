@@ -2,6 +2,13 @@ namespace Roboot.Util
 {
     using System;
 
+    public static class Optional
+    {
+        public static Optional<T> Some<T>(T value) where T : class {
+            return Optional<T>.Some(value);
+        }
+    }
+
     public struct Optional<T>
         where T : class
     {
@@ -42,7 +49,7 @@ namespace Roboot.Util
         {
             if (this.IsNone())
             {
-                throw new ArgumentException("attempt to retrieve value from None");
+                throw new ArgumentException($"attempt to retrieve value from Optional<{typeof(T).ToString()}>None");
             }
 
             return this.value;

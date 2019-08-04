@@ -2,6 +2,15 @@ fun inc x => x + 1;
 
 let five = 5;
 
+datatype Hello => struct (
+  field1: Int;
+  field2: Int;
+);
+
+# datatype Nat => Int
+
 fun slowAdd a b =>
   if (a == 0) b
   else (slowAdd (a - 1) (b + 1));
+
+# (struct ~f:5 ~a:10)

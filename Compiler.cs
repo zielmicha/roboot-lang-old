@@ -208,7 +208,7 @@ namespace Roboot.Compiler {
             return (Value.Seq(instr, Value.Dynamic(successVar)), Value.Dynamic(costVar), compiler.CompileExpr(matchCase.Body));
         }
 
-        public static Value CompileMatchCases(Value matchWith, List<(FunctionCompiler, MatchCase)> cases) {
+        public static Value CompileMatchCases(Value matchWith, List<(FunctionCompiler, MatchCase)> cases, Expression failureMessage) {
             var instrs = new List<Expression>();
             matchWith = matchWith.EvalOnce(instrs);
 
@@ -230,8 +230,8 @@ namespace Roboot.Compiler {
                                 Expression.Block(Expression.Assign(bestCost, costVar.Expression), Expression.Assign(bestCase, Expression.Constant(caseI)))))));
             }
 
-            instrs.Add(Expression.IfThen(Expression.Equal(bestCase, Expression.Constant(-2)), Expression.Call(typeof(RuntimeUtil).GetMethod("ThrowAmbigousMatch"))));
-            instrs.Add(Expression.IfThen(Expression.Equal(bestCase, Expression.Constant(-1)), Expression.Call(typeof(RuntimeUtil).GetMethod("ThrowNoMatch"))));
+            instrs.Add(Expression.IfThen(Expression.Equal(bestCase, Expression.Constant(-2)), Expression.Call(typeof(RuntimeUtil).GetMethod("ThrowAmbigousMatch"), matchWith.Expression, failureMessage)));
+            instrs.Add(Expression.IfThen(Expression.Equal(bestCase, Expression.Constant(-1)), Expression.Call(typeof(RuntimeUtil).GetMethod("ThrowNoMatch"), matchWith.Expression, failureMessage)));
             // instrs.Add(Expression.Call(typeof(RuntimeUtil).GetMethod("DebugPrintInt"), Expression.Constant("bestCase"), bestCase));
 
             var resultVar = Expression.Parameter(typeof(object), "result");
@@ -274,6 +274,7 @@ namespace Roboot.Compiler {
                 case MakeTuple e: return CompileExpr(e);
                 case If e: return CompileExpr(e);
                 case FunDefExpr e: return CompileExpr(e);
+                case Ast.Struct e: return CompileExpr(e);
                 default:
                     throw new Exception("unknown AST node " + expr.GetType());
             }
@@ -403,5 +404,24 @@ namespace Roboot.Compiler {
 
             return Value.Seq(instrs, compiler.CompileExpr(body));
         }
+
+        private Value CompileExpr(Ast.Struct e) {
+            var fields = ExprUtil.MakeList<Runtime.StructField>(
+                e.Fields.Select(
+                    field => Expression.New(
+                        typeof(Runtime.StructField).GetConstructors()[0],
+                        Expression.Constant(field.Name),
+                        CompileExpr(field.Type).Expression,
+                        Expression.Constant(new List<object>())
+                )));
+            return Value.Dynamic(
+                Expression.New(
+                    typeof(Runtime.Struct).GetConstructors()[0],
+                    Expression.Constant(Optional<string>.None()),
+                    fields,
+                    Expression.Constant(new List<object>())));
+        }
+
     }
+
 }

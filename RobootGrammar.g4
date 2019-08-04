@@ -2,7 +2,7 @@ grammar RobootGrammar;
 
 INT : [0-9]+ ;
 
-OP3 : '|' | '$';
+OP3 : '|' | '|.';
 OP4 : 'and' | 'or' | 'xor' ;
 OP5 : ('=' | '<' | '>' | '!') ('.' | '+' | '-' | '=' | '>' | '<' | '/' | '*')+
     | '<' | '>';
@@ -20,7 +20,7 @@ module_stmt :
         include_stmt |
         fun_stmt |
         let_stmt |
-        type_stmt |
+        datatype_stmt |
         module_def_stmt;
 
 method_base_stmt : 'method_base' ident;
@@ -30,7 +30,7 @@ fun_stmt : 'fun' ident fundef_expr;
 let_stmt : 'let' ident (':' expr)? '=' expr;
 val_stmt : 'val' ident ':' expr;
 
-type_stmt : 'type' ident fundef_expr;
+datatype_stmt : 'datatype' ident fundef_expr;
 
 block_stmt :
         expr |
@@ -63,7 +63,7 @@ funcallarg :
     expr10 |
     '~' ident ':' expr10;
 
-expr10 : expr10 '[' (expr_tuple | expr |) ']' | // translated to getItem
+expr10 : expr10 '.[' (expr_tuple | expr |) ']' | // translated to getItem
          expr10 '.' ident |
          expr11;
 expr11: if_expr | expr_atom;
@@ -81,8 +81,10 @@ expr_tuple : (expr ',')+ expr?;
 expr_block : (block_stmt ';')+ block_stmt?;
 
 if_expr : 'if' expr_atom expr_atom ('else' expr_atom)?;
-struct_expr : 'struct' '{' struct_field* '}';
-struct_field : ident ':' expr ';';
+struct_expr : 'struct' '(' (struct_field ';')* struct_field? ')';
+struct_field : ident ':' expr attributes;
+
+attributes : ('@' expr_atom)*;
 
 atom : INT | STRING | ident;
 

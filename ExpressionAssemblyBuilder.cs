@@ -79,8 +79,6 @@ namespace Roboot.Compiler {
         private int functionCounter = 0;
 
         class MyDebugInfoGenerator : DebugInfoGenerator {
-            private ExpressionAssemblyBuilder builder;
-
             public override void MarkSequencePoint(LambdaExpression lambda, int ilOffset, DebugInfoExpression expression) {
 
             }

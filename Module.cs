@@ -8,6 +8,7 @@ namespace Roboot.Runtime {
     public class Module {
         private List<Module> importedModules = new List<Module>();
         private Dictionary<string, object> values = new Dictionary<string, object>();
+        internal Dictionary<string, object> typeScopeValues = new Dictionary<string, object>();
 
         private static object MergeCandidates(List<object> values, string name) {
             if (values.Count == 1) return values[0];
@@ -27,6 +28,16 @@ namespace Roboot.Runtime {
 
         public object GetValue(string name) {
             return values[name];
+        }
+
+        public object GetTypeScopeValue(string name) {
+            return typeScopeValues.ContainsKey(name) ?
+                typeScopeValues[name] :
+                values[name];
+        }
+
+        public void SetTypeScopeValue(string name, object value) {
+            typeScopeValues[name] = value;
         }
 
         public void RegisterMethod(string name, Method body) {
@@ -77,5 +88,12 @@ namespace Roboot.Runtime {
             new Compiler.ModuleLoader(this).LoadCode(path, data);
         }
 
+
+        // Helper methods
+
+        public object CallMethod(string name, Runtime.Params parameters) {
+            var method = this.Lookup(name, includeLocal: true).Get();
+            return ((ICallable)method).Call(parameters);
+        }
     }
 }

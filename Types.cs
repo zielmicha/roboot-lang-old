@@ -1,8 +1,10 @@
 namespace Roboot.Runtime {
+    using System.Collections.Immutable;
     using System.Collections.Generic;
+    using System.Linq;
 
     public class UnitValue {
-        private UnitValue() {}
+        private UnitValue() { }
 
         public static UnitValue Instance = new UnitValue();
     }
@@ -16,6 +18,16 @@ namespace Roboot.Runtime {
             this.Arguments = arguments;
             this.NamedArguments = namedArguments;
         }
+
+        public static Params Make(params object[] args) {
+            return new Params(args.ToList(), ImmutableDictionary<string, object>.Empty);
+        }
+
+        public override string ToString() {
+            var args = this.Arguments.Select(x => x.ToString()).ToList();
+            args.AddRange(this.NamedArguments.Select(x => $"~{ x.Key}:{ x.Value}"));
+            return $"(Params {string.Join(" ", args)})";
+        }
     }
 
     public interface ICallable {
@@ -23,7 +35,7 @@ namespace Roboot.Runtime {
     }
 
     public class Never {
-        private Never() {}
+        private Never() { }
     }
 
     public class AnyType {

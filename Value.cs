@@ -21,9 +21,9 @@ namespace Roboot.Compiler {
             }
         }
 
-        public Expression Expression { get; set; }
+        public Expression Expression { get; private set ;}
 
-        public object ImmediateValue { get; set; }
+        public object ImmediateValue { get; private set; }
 
         public Value EvalOnce(ICollection<Expression> instrs) {
             if (ImmediateValue != null)

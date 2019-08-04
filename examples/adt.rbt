@@ -1,11 +1,12 @@
-
 module Optional1 {
     # Tagged type union
 
-    type None T = Unit;
+    type None = Unit;
     type Some T = T;
 
-    type MyOptional T = typeUnion (None T) (Some T);
+    let some ~~T (x:T) = (Some T) x;
+
+    type MyOptional T = typeUnion (None) (Some T);
 
     fun isSome ~~T (x:MyOptional T) =>
         match x (
@@ -26,16 +27,16 @@ module Optional1 {
         );
 
     fun isSome4 (x:Some _) => true;
-    fun isSome4 (x:None _) => false;
+    fun isSome4 (x:None) => false;
 
     fun get (x:MyOptional _) =>
         match x (
-           (Some _) x => x;
-           _ => error("get on None");
+           some x => x;
+           _ => (failWith "get on None");
         );
 
     fun get1 ~~y ((Some _) y) => true;
-    fun get1 (_:None _) => false;
+    fun get1 (_:None) => false;
 }
 
 

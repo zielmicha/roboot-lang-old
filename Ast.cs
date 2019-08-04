@@ -67,7 +67,22 @@ namespace Roboot.Ast {
         }
 
         public override string ToString() {
-            return $"{Name} = {FunDef}";
+            return $"fun {Name} => {FunDef}";
+        }
+    }
+
+    public class ModuleDataTypeStmt : ModuleStmt {
+        public readonly string Name;
+
+        public readonly FunDefExpr FunDef;
+
+        public ModuleDataTypeStmt(string name, FunDefExpr funDef) {
+            this.Name = name;
+            this.FunDef = funDef;
+        }
+
+        public override string ToString() {
+            return $"datatype {Name} => {FunDef}";
         }
     }
 
@@ -91,6 +106,32 @@ namespace Roboot.Ast {
     }
 
     //
+
+    public class StructField : Node {
+        public readonly Expr Type;
+        public readonly string Name;
+
+        public StructField(Expr type, string name) {
+            this.Type = type;
+            this.Name = name;
+        }
+
+        public override string ToString() {
+            return $"({this.Name} {this.Type})";
+        }
+    }
+
+    public class Struct : Expr {
+        public readonly IReadOnlyList<StructField> Fields;
+
+        public Struct(IReadOnlyList<StructField> fields) {
+            this.Fields = fields;
+        }
+
+        public override string ToString() {
+            return $"(struct {string.Join(" ", Fields)})";
+        }
+    }
 
     public class Param : Expr {
         public readonly string Name;
@@ -299,7 +340,7 @@ namespace Roboot.Ast {
 
         public Coerce(Expr value, Expr type) {
             this.Value = value;
-            this.Type = Type;
+            this.Type = type;
         }
 
         public override string ToString() {

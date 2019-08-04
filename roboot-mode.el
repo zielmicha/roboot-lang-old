@@ -21,7 +21,7 @@
     table))
 
 (setq roboot-highlights
-      '(("\\b\\(module\\|if\\|else\\|fun\\|let\\|letmut\\|val\\|methodbase\\|while\\|struct\\|return\\|import\\|include\\|type\\|coercion\\|match\\)\\b" . font-lock-keyword-face)))
+      '(("\\b\\(module\\|if\\|else\\|fun\\|let\\|letmut\\|val\\|methodbase\\|while\\|struct\\|return\\|import\\|include\\|datatype\\|coercion\\|match\\)\\b" . font-lock-keyword-face)))
 
 (setq roboot-indent-offset 2)
 

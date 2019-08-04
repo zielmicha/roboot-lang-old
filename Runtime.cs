@@ -43,12 +43,12 @@ namespace Roboot.Runtime {
             throw new Exception($"cannot convert {source} (type: {source.GetType()}) into {target}");
         }
 
-        public static void ThrowAmbigousMatch() {
-            throw new Exception($"ambigous match");
+        public static void ThrowAmbigousMatch(object value, object failureMessage) {
+            throw new Exception($"{failureMessage}: ambigous match for {value}");
         }
 
-        public static void ThrowNoMatch() {
-            throw new Exception($"no match");
+        public static void ThrowNoMatch(object value, object failureMessage) {
+            throw new Exception($"{failureMessage}: no matching case for {value}");
         }
 
         public static void DebugPrintInt(string msg, int value) {
