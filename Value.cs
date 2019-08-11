@@ -6,7 +6,7 @@ namespace Roboot.Compiler {
     using Roboot.Runtime;
 
     public class Value {
-        private Value() {}
+        private Value() { }
 
         private Value _type;
 
@@ -21,7 +21,7 @@ namespace Roboot.Compiler {
             }
         }
 
-        public Expression Expression { get; private set ;}
+        public Expression Expression { get; private set; }
 
         public object ImmediateValue { get; private set; }
 
@@ -33,24 +33,25 @@ namespace Roboot.Compiler {
         }
 
         public Type AsClrType() {
-            if (this.ImmediateValue != null && this.ImmediateValue is Type type)
-                return type;
+            if (this.ImmediateValue != null) {
+                return TypeBox.TryUnbox(this.ImmediateValue).GetOrDefault(typeof(object));
+            }
             return typeof(object);
         }
-        
+
         public Type GetClrType() {
             return Type.AsClrType();
         }
 
         public static Value Unit() {
-            return Value.Immediate(UnitValue.Instance);
+            return Value.Immediate(Runtime.Unit.Instance);
         }
 
         public static Value Unit(Expression expression) {
-            return Dynamic(Expression.Block(expression, Expression.Constant(UnitValue.Instance)));
+            return Dynamic(Expression.Block(expression, Expression.Constant(Runtime.Unit.Instance)));
         }
 
-        public static Value Dynamic(Expression expression, Value type=null) {
+        public static Value Dynamic(Expression expression, Value type = null) {
             if (type != null && type.AsClrType() != expression.Type) {
                 throw new ArgumentException($"CLR type mismatch expected={type.AsClrType()} actual={expression.Type}");
             }
@@ -63,7 +64,7 @@ namespace Roboot.Compiler {
             };
         }
 
-        public static Value Immediate(object value, Value type=null) {
+        public static Value Immediate(object value, Value type = null) {
             return new Value {
                 _type = type,
                 Expression = Expression.Constant(value),

@@ -22,6 +22,11 @@ namespace Roboot.Runtime {
             return Method.Merge(values.Select(x => (Method)x), newName: name);
         }
 
+        public void AddImportedModule(Module module) {
+            if (!importedModules.Contains(module))
+                importedModules.Add(module);
+        }
+
         public void SetValue(string name, object value) {
             values[name] = value;
         }
@@ -92,8 +97,10 @@ namespace Roboot.Runtime {
         // Helper methods
 
         public object CallMethod(string name, Runtime.Params parameters) {
-            var method = this.Lookup(name, includeLocal: true).Get();
-            return ((ICallable)method).Call(parameters);
+            var method = this.Lookup(name, includeLocal: true);
+            if (method.IsNone())
+                throw new Exception($"no such method {name}");
+            return ((ICallable)method.Get()).Call(parameters);
         }
     }
 }

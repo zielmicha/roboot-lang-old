@@ -1,16 +1,25 @@
-fun inc x => x + 1;
+# Option
+datatype None => struct ();
 
-let five = 5;
+datatype Some => struct ( value: Any );
 
-datatype Hello => struct (
-  field1: Int;
-  field2: Int;
-);
+fun none => makeNone ();
 
-# datatype Nat => Int
+fun some x => makeSome ~value:x;
 
-fun slowAdd a b =>
-  if (a == 0) b
-  else (slowAdd (a - 1) (b + 1));
+# TODO: generic version only for Array
+fun map arr ~f =>
+  arr.length;
 
-# (struct ~f:5 ~a:10)
+fun join (a: Array String) =>
+  "JOINED";
+
+# Sexp
+datatype SexpAtom => struct ( value: String );
+datatype SexpList => struct ( value: Array Any ); # todo: Any -> Sexp
+
+fun sexp (a: String) => makeSexpAtom ~value:a;
+fun sexp (a: Array SexpAtom) => makeSexpList ~value:a;
+
+fun toString (a: SexpAtom) => a.value;
+fun toString (a: SexpList) => a.value |. toString | join ", ";

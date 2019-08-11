@@ -52,7 +52,7 @@ namespace Roboot.Compiler {
             var usedNamedParams = Expression.Parameter(typeof(int), "usedNamedParams");
 
             foreach (Param target in named) {
-                Expression value = ExprUtil.GetItem<IReadOnlyDictionary<string, object>>(positionalValues, Expression.Constant(target.Name));
+                Expression value = ExprUtil.GetItem<IReadOnlyDictionary<string, object>>(namedValues, Expression.Constant(target.Name));
 
                 Expression match = CompileMatch(Value.Dynamic(value), target.Value, failLabel);
                 Expression onDefault = ExprUtil.Empty();

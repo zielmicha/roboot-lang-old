@@ -3,10 +3,10 @@ namespace Roboot.Runtime {
     using System.Collections.Generic;
     using System.Linq;
 
-    public class UnitValue {
-        private UnitValue() { }
+    public class Unit {
+        private Unit() { }
 
-        public static UnitValue Instance = new UnitValue();
+        public static Unit Instance = new Unit();
     }
 
     public class Params {
@@ -28,6 +28,10 @@ namespace Roboot.Runtime {
             args.AddRange(this.NamedArguments.Select(x => $"~{ x.Key}:{ x.Value}"));
             return $"(Params {string.Join(" ", args)})";
         }
+    }
+
+    public class Placeholder {
+        public Placeholder() { }
     }
 
     public interface ICallable {

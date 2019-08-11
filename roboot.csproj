@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="lib/base.rbt"><Link>base</Link></EmbeddedResource>
+    <EmbeddedResource Include="lib/basetest.rbt"><Link>basetest</Link></EmbeddedResource>
   </ItemGroup>
 
   <ItemGroup>

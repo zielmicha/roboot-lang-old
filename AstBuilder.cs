@@ -55,6 +55,10 @@ namespace Roboot.AstBuilder {
                         var name = visitor.VisitName(datatypeStmt.children[1]);
                         return new ModuleDataTypeStmt(name, (FunDefExpr)visitor.Visit(datatypeStmt.children[2]));
                     }
+                case RobootGrammarParser.Import_stmtContext importStmt: {
+                        var name = visitor.VisitName(importStmt.children[1]);
+                        return new ModuleImportStmt(name);
+                    }
             }
             throw new ArgumentException($"unknown module stmt {e.children[0].GetType()}");
         }
@@ -81,6 +85,8 @@ namespace Roboot.AstBuilder {
     internal class ExprVisitor : RobootGrammarBaseVisitor<Expr> {
         public override Expr Visit(IParseTree i) {
             Expr result = base.Visit(i);
+            if (result == null)
+                throw new Exception($"visit returned null for {i}");
             if (result.Location == null)
                 result.Location = MakeLocationUtil.MakeLocation((ParserRuleContext)i);
             return result;
@@ -189,7 +195,11 @@ namespace Roboot.AstBuilder {
         }
 
         public override Expr VisitExpr9(RobootGrammarParser.Expr9Context e) {
-            if (e.children.Count == 2) {
+            if (e.children.Count == 3) {
+                Debug.Assert(e.children[1].GetText() == "(");
+                Debug.Assert(e.children[2].GetText() == ")");
+                return new Call(func: Visit(e.children[0]), args: new List<Expr>() { });
+            } else if (e.children.Count == 2) {
                 Debug.Assert(e.children[0].GetText() == "-");
                 return new Call(
                         func: new Name("-"),
@@ -197,6 +207,10 @@ namespace Roboot.AstBuilder {
             } else {
                 return VisitExprN(e.children);
             }
+        }
+
+        public override Expr VisitExpr10(RobootGrammarParser.Expr10Context e) {
+            return VisitExprN(e.children);
         }
 
         public override Expr VisitAtom(RobootGrammarParser.AtomContext e) {
@@ -278,10 +292,10 @@ namespace Roboot.AstBuilder {
 
             string op = e[1].GetText();
 
-            if (op == "$" || op == "|") {
+            if (op == "|." || op == "|" || op == ".") {
                 var firstExpr = Visit(e[0]);
                 List<Expr> firstArgs = null;
-                if (op == "|") firstArgs = new List<Expr>() { firstExpr };
+                if (op == "|" || op == ".") firstArgs = new List<Expr>() { firstExpr };
                 if (op == "|.") firstArgs = new List<Expr>() { new Name("map"), firstExpr };
                 var rhs = Visit(e[2]);
                 if (rhs is Call call) {

@@ -75,7 +75,7 @@ namespace Roboot.Compiler {
 
     public class ExpressionAssemblyBuilder {
         private readonly AssemblyBuilder assemblyBuilder;
-        private readonly ModuleBuilder moduleBuilder;
+        public ModuleBuilder ModuleBuilder { get; }
         private int functionCounter = 0;
 
         class MyDebugInfoGenerator : DebugInfoGenerator {
@@ -97,16 +97,16 @@ namespace Roboot.Compiler {
                     DebuggableAttribute.DebuggingModes.Default });
             assemblyBuilder.SetCustomAttribute(daBuilder);
 
-            moduleBuilder = assemblyBuilder.DefineDynamicModule("robootprogram", "RobootProgram.dll", true);
+            ModuleBuilder = assemblyBuilder.DefineDynamicModule("robootprogram", "RobootProgram.dll", true);
         }
 
         public CompiledMethod AddMethod(LambdaExpression lambda) {
             int functionId = Interlocked.Increment(ref functionCounter);
-            TypeBuilder typeBuilder = moduleBuilder.DefineType("Function" + functionId, TypeAttributes.Public | TypeAttributes.Class);
+            TypeBuilder typeBuilder = ModuleBuilder.DefineType("Function" + functionId, TypeAttributes.Public | TypeAttributes.Class);
             MethodBuilder methodBuilder = typeBuilder.DefineMethod("Call", MethodAttributes.HideBySig | MethodAttributes.Static | MethodAttributes.Public, typeof(void), new Type[] { typeof(int) });
 
             var constantRewriterStage1 = new ConstantRewriterStage1();
-            constantRewriterStage1.constantFieldStorageType = moduleBuilder.DefineType("FunctionConst" + functionId, TypeAttributes.Public | TypeAttributes.Class);
+            constantRewriterStage1.constantFieldStorageType = ModuleBuilder.DefineType("FunctionConst" + functionId, TypeAttributes.Public | TypeAttributes.Class);
             lambda = (LambdaExpression)constantRewriterStage1.Visit(lambda);
 
             var constantRewriterStage2 = new ConstantRewriterStage2();

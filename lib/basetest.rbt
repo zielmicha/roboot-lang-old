@@ -1,0 +1,19 @@
+import Base;
+
+fun inc x => x + 1;
+
+let five = 5;
+
+datatype Hello => struct (
+  field1: Int;
+  field2: Int;
+  zoo: Zoo;
+);
+
+datatype Zoo => struct (
+  field3: Int;
+);
+
+fun slowAdd a b =>
+  if (a == 0) b
+  else (slowAdd (a - 1) (b + 1));

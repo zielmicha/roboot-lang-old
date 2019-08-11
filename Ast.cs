@@ -86,6 +86,14 @@ namespace Roboot.Ast {
         }
     }
 
+    public class ModuleImportStmt : ModuleStmt {
+        public readonly string Name;
+
+        public ModuleImportStmt(string name) {
+            this.Name = name;
+        }
+    }
+
     public class BlockLet : BlockStmt {
         public readonly string Name;
         public readonly Optional<Expr> Type;
@@ -147,6 +155,16 @@ namespace Roboot.Ast {
             this.IsOptional = isOptional;
             this.DefaultValue = defaultValue;
         }
+
+        public override string ToString() {
+            string res = "";
+            res += this.IsNamed ? "~" : "";
+            res += this.IsOptional ? " ? " : "";
+            res += $"{this.Name}:{this.Value}";
+            if (this.DefaultValue.IsSome())
+                res += "=" + this.DefaultValue.Get();
+            return res;
+        }
     }
 
     public class Params : Expr {
@@ -154,6 +172,10 @@ namespace Roboot.Ast {
 
         public Params(IReadOnlyList<Param> paramList) {
             this.ParamList = paramList;
+        }
+
+        public override string ToString() {
+            return $"(Params {string.Join(" ", this.ParamList)})";
         }
     }
 
@@ -166,7 +188,7 @@ namespace Roboot.Ast {
             return new Params(
                 Args
                 .Select(arg => new Param(name: null, value: arg))
-                .Concat(NamedArgs.Select(arg => new Param(name: arg.Key, value: arg.Value)))
+                .Concat(NamedArgs.Select(arg => new Param(name: arg.Key, value: arg.Value, isNamed: true)))
                 .ToList());
         }
 
@@ -316,6 +338,11 @@ namespace Roboot.Ast {
             this.MatchedValue = matchedValue;
             this.Body = body;
         }
+
+        public string GetSummary() {
+            return string.Join(" ", ImplicitVariables.Select(x => x.name + (x.type.IsSome() ? ":" + x.type.Get() : ""))) + " :: " +
+                MatchedValue;
+        }
     }
 
     public class If : Expr {
@@ -355,6 +382,30 @@ namespace Roboot.Ast {
 
         public NativeValue(object value) {
             this.Value = value;
+        }
+
+        public override string ToString() {
+            return $"(native {Value})";
+        }
+    }
+
+    public class NativeGetField : Expr {
+        public readonly Expr Object;
+        public readonly string FieldName;
+
+        public NativeGetField(Expr obj, string fieldName) {
+            this.Object = obj;
+            this.FieldName = fieldName;
+        }
+    }
+
+    public class NativeConstruct : Expr {
+        public readonly Expr Type;
+        public readonly IReadOnlyList<Expr> Args;
+
+        public NativeConstruct(Expr type, IReadOnlyList<Expr> args) {
+            this.Type = type;
+            this.Args = args;
         }
     }
 

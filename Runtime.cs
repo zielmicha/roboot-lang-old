@@ -7,10 +7,16 @@ namespace Roboot.Runtime {
 
     public class Environment {
         public Module BaseModule;
+
+        public Dictionary<string, Module> LoadedModules = new Dictionary<string, Module>();
+
+        public Module GetModule(string name) {
+            return LoadedModules[name];
+        }
     }
 
     public class Context {
-        public Environment Env;
+        public Environment Env = new Environment();
 
         public Compiler.ExpressionAssemblyBuilder AssemblyBuilder = new Compiler.ExpressionAssemblyBuilder();
     }
@@ -32,6 +38,8 @@ namespace Roboot.Runtime {
 
         public static void InitThread() {
             ContextStorage.Value = new Context();
+            CurrentEnv.LoadedModules["Base"] =
+                CurrentEnv.BaseModule = new Base.BaseModule();
         }
     }
 
@@ -43,12 +51,12 @@ namespace Roboot.Runtime {
             throw new Exception($"cannot convert {source} (type: {source.GetType()}) into {target}");
         }
 
-        public static void ThrowAmbigousMatch(object value, object failureMessage) {
-            throw new Exception($"{failureMessage}: ambigous match for {value}");
+        public static void ThrowAmbigousMatch(object value, object failureMessage, object allCasesMessage) {
+            throw new Exception($"{failureMessage}: ambigous match for {value}\n{allCasesMessage}");
         }
 
-        public static void ThrowNoMatch(object value, object failureMessage) {
-            throw new Exception($"{failureMessage}: no matching case for {value}");
+        public static void ThrowNoMatch(object value, object failureMessage, object allCasesMessage) {
+            throw new Exception($"{failureMessage}: no matching case for {value}\n{allCasesMessage}");
         }
 
         public static void DebugPrintInt(string msg, int value) {
@@ -65,7 +73,9 @@ namespace Roboot.Runtime {
         }
 
         public static object Coerce(object source, object target, out int cost) {
-            if (target is Type targetType) {
+            var targetTypeOpt = TypeBox.TryUnbox(target);
+            if (targetTypeOpt.IsSome()) {
+                var targetType = targetTypeOpt.Get();
                 if (source.GetType() == targetType) {
                     cost = 0;
                     return source;

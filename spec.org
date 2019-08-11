@@ -1,0 +1,126 @@
+** type system
+
+Types in Roboot come in two kinds: concrete types and typeclasses.
+
+All types represent sets of possible runtime values. Concrete types are these types which are returned by `typeOf` method. In other words these are the types which runtime values have. Type classes are all types that are not concrete.
+
+
+Examples of concrete types
+
+- Int, Float, Byte, ...
+- Tuple
+- Some
+- None
+- Param
+
+Examples of typeclasses
+
+- Any (top type)
+- Never (bottom type)
+- Union
+- Option (Union of Some and None)
+
+*** primitive types
+
+Concrete types:
+
+- Int, Float, Byte, ...
+- Tuple
+- struct types
+
+Typeclasses:
+
+- Any
+- Never
+- Union
+- Type
+- interfaces
+
+*** interfaces
+
+Interfaces match all types that provide a given set of methods.
+
+Example:
+
+let Ring = interface T (
+   add: (fun T T : T);
+   mul: (fun T T : T);
+   neg: (fun T : T);
+   zero: (fun (Sngl T) : T);
+   one: (fun (Sngl T) : T);
+   to_string: (fun T : String);
+)
+
+*** type conversion/variance
+
+Concrete types are never implicitly convertible between each other. This includes generic types, so [Tuple Int Int] is not [Tuple Any Any].
+
+TODO
+
+** modules
+*** [callmacro] statement
+
+callmacro <<expr>>
+
+The statement evaluates <<expr>> in pure context. <<expr>> is expected to evaluate into a list of [RuntimeBlockStmt]. They are interpreted then as if they were in the source code, just after the callmacro statement.
+
+*** [datatype] statement
+
+datatype <<name>> <<params>> => <<expr>>
+
+If <<params>> is empty, declares a variable named <<name>>, otherwise declares a function.
+
+If <<paams>> is empty, *type creation* process will begin during module initialization. Otherwise type creation will occur when the function <<name>> is first called for each set of arguments.
+
+During module initialization <<expr>> will be evaluated in type creation context. Additionaly, all parameter variables will have values substituted by instances of [TypeConstructorPlaceholder]. The result of this evaluation is called *placeholder type value*. The specific instances passed as parameters form a [Param] object called *placeholder params*.
+
+During module initialization the following code will be evaluated:
+
+callmacro initType <<name>> <<placeholder type value>> <<placeholder params>>
+
+**** Type creation
+
+Phase 1: for each datatype statement in a module, <<expr>> will be evaluated in type creation context. The return values is called *type value*.
+
+Phase 2: nativeStartType <<name>> <<type value>> -> (<<type builder>>, <<native TypeBuilder>>)
+
+Phase 3:
+In this phase, [nativeGetType] can be called on type boxes, returning <<native TypeBuilder>> for it. [nativeBuildType] should finish up building the native types.
+
+nativeBuildType <<type builder>>
+
+**** Type creation context
+
+When <<expr>> is evaluated, all accesses of other variables/functions declared with [datatype] statement in the current module will return a *type box* for a given type. (Note: This is neccessary to allow cycles in type definitions).
+
+**** Type boxes
+
+Type box is a value that represents either a type (in phase 3) or a promise for a type (in phases 1-2).
+
+Type box implements the following methods:
+- [nativeBuildType]
+- [name]
+*** [sumtype] statement
+
+sumtype <<name>> =
+  <<constr1>> <<constr2>> ... <<constrN>>
+
+sumtype is a syntax sugar for the following:
+TODO
+
+** stdlib
+
+*** Sngl type
+
+datatype Sngl x = Unit
+fun sngl i => (Sngl i) ()
+
+Sngl type is useful for dispatching multimethods over values. For example:
+
+#+BEGIN_SRC
+fun zero_vec (_:Sngl 1) = [0]
+fun zero_vec (_:Sngl 2) = [0, 0]
+fun zero_vec (_:Sngl 3) = [0, 0, 0]
+
+let foo = zero_vec (sngl 2)
+#+END_SRC

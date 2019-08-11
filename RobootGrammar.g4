@@ -56,6 +56,7 @@ expr6 : expr6 OP6 expr7 | expr7;
 expr7 : expr7 (OP7 | '-') expr8 | expr8;
 expr8 : expr8 OP8 expr9 | expr9;
 expr9 : funcall |
+    expr10 '(' ')' |
     '-' expr10;
 
 funcall : funcall funcallarg | expr10;

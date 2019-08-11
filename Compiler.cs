@@ -230,8 +230,10 @@ namespace Roboot.Compiler {
                                 Expression.Block(Expression.Assign(bestCost, costVar.Expression), Expression.Assign(bestCase, Expression.Constant(caseI)))))));
             }
 
-            instrs.Add(Expression.IfThen(Expression.Equal(bestCase, Expression.Constant(-2)), Expression.Call(typeof(RuntimeUtil).GetMethod("ThrowAmbigousMatch"), matchWith.Expression, failureMessage)));
-            instrs.Add(Expression.IfThen(Expression.Equal(bestCase, Expression.Constant(-1)), Expression.Call(typeof(RuntimeUtil).GetMethod("ThrowNoMatch"), matchWith.Expression, failureMessage)));
+            var allCasesMessage = Expression.Constant("All match cases:\n" +
+                                                      string.Join("\n", cases.Select(x => x.Item2.GetSummary())));
+            instrs.Add(Expression.IfThen(Expression.Equal(bestCase, Expression.Constant(-2)), Expression.Call(typeof(RuntimeUtil).GetMethod("ThrowAmbigousMatch"), matchWith.Expression, failureMessage, allCasesMessage)));
+            instrs.Add(Expression.IfThen(Expression.Equal(bestCase, Expression.Constant(-1)), Expression.Call(typeof(RuntimeUtil).GetMethod("ThrowNoMatch"), matchWith.Expression, failureMessage, allCasesMessage)));
             // instrs.Add(Expression.Call(typeof(RuntimeUtil).GetMethod("DebugPrintInt"), Expression.Constant("bestCase"), bestCase));
 
             var resultVar = Expression.Parameter(typeof(object), "result");
@@ -275,6 +277,8 @@ namespace Roboot.Compiler {
                 case If e: return CompileExpr(e);
                 case FunDefExpr e: return CompileExpr(e);
                 case Ast.Struct e: return CompileExpr(e);
+                case NativeGetField e: return CompileExpr(e);
+                case NativeConstruct e: return CompileExpr(e);
                 default:
                     throw new Exception("unknown AST node " + expr.GetType());
             }
@@ -294,6 +298,24 @@ namespace Roboot.Compiler {
 
         private Value CompileExpr(NativeValue nativeValue) {
             return Value.Immediate(nativeValue.Value);
+        }
+
+        private Value CompileExpr(NativeGetField e) {
+            Value value = CompileExpr(e.Object);
+            Type clrType = value.GetClrType();
+            FieldInfo field = clrType.GetField(e.FieldName);
+            if (field == null)
+                throw new Exception($"type {clrType} has no field {e.FieldName}");
+            return Value.Dynamic(Expression.Field(value.Expression, field));
+        }
+
+        private Value CompileExpr(NativeConstruct e) {
+            Value value = CompileExpr(e.Type);
+            Type clrType = value.AsClrType();
+            return Value.Dynamic(
+                Expression.New(clrType.GetConstructors()[0],
+                               e.Args.Select(arg => CompileExpr(arg).Expression).ToList())
+            );
         }
 
         private Value CompileExpr(Block block) {
@@ -332,9 +354,10 @@ namespace Roboot.Compiler {
         }
 
         private Value CompileExpr(Ast.Params parameters) {
-            var positional = ExprUtil.CreateCollection<List<object>>(parameters.ParamList.Where(param => !param.IsNamed).Select(param => Expression.Convert(CompileExpr(param.Value).Expression, typeof(object))));
-            var named = ExprUtil.CreateCollection<Dictionary<string, object>>(parameters.ParamList.Where(param => param.IsNamed)
-                .Select(param => ExprUtil.CreateKeyValuePair<string, object>(Expression.Constant(param.Name), Expression.Convert(CompileExpr(param.Value).Expression, typeof(object)))));
+            var positional = ExprUtil.CreateCollection<List<object>, object>(parameters.ParamList.Where(param => !param.IsNamed).Select(param => Expression.Convert(CompileExpr(param.Value).Expression, typeof(object))));
+            var named = ExprUtil.CreateDict<Dictionary<string, object>>(parameters.ParamList.Where(param => param.IsNamed)
+                .Select(param => ((Expression)Expression.Constant(param.Name),
+                                  (Expression)Expression.Convert(CompileExpr(param.Value).Expression, typeof(object)))));
             return Value.Dynamic(Expression.New(typeof(Runtime.Params).GetConstructors()[0], positional, named));
         }
 

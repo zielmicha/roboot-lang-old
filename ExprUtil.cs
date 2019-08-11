@@ -37,10 +37,16 @@ namespace Roboot.Compiler {
             return Expression.Call(obj, typeof(T).GetMethod("get_Item"), index);
         }
 
-        public static Expression CreateCollection<T>(IEnumerable<Expression> items) {
+        public static Expression CreateCollection<T, Item>(IEnumerable<Expression> items) {
             return Expression.ListInit(
                 Expression.New(typeof(T).GetConstructor(new Type[] { })),
-                items.Select(x => Expression.ElementInit(typeof(T).GetMethod("Add"), x)).ToList());
+                items.Select(x => Expression.ElementInit(typeof(T).GetMethod("Add", new Type[] { typeof(Item) }), x)).ToList());
+        }
+
+        public static Expression CreateDict<T>(IEnumerable<(Expression, Expression)> items) {
+            return Expression.ListInit(
+                Expression.New(typeof(T).GetConstructor(new Type[] { })),
+                items.Select(x => Expression.ElementInit(typeof(T).GetMethod("Add"), x.Item1, x.Item2)).ToList());
         }
 
         public static Expression CreateKeyValuePair<K, V>(Expression a, Expression b) {
