@@ -9,7 +9,7 @@ namespace Roboot.Compiler {
     using Roboot.Runtime;
     using Roboot.Ast;
 
-    partial class FunctionCompiler {
+    public partial class FunctionCompiler {
         public Value GetCommonType(Value t1, Value t2) {
             if (AreEqual(t1, t2) == true) return t1;
             return Value.Immediate(typeof(object));

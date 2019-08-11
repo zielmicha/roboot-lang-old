@@ -55,7 +55,7 @@ namespace Roboot.Tests {
             Assert.AreEqual(EvalCode("(let z = makeZoo ~field3:5; let h = makeHello ~field1:1 ~field2:2 ~zoo:z; h.zoo.field3)"), 5L);
 
             //Assert.AreEqual(EvalCode("toString (sexp \"foo\")"), "foo");
-            Assert.AreEqual(EvalCode("(let a = [1,2,3]; a.length)"), 3L);
+            //Assert.AreEqual(EvalCode("(let a = [1,2,3]; a.length)"), 3L);
             //Assert.AreEqual(EvalCode("toString (sexp [sexp \"foo\", sexp \"bar\"])"), "foo,bar");
 
             //Console.WriteLine(EvalCode("field1 5"));

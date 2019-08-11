@@ -59,9 +59,8 @@ namespace Roboot.Compiler {
         }
     }
 
-    partial class FunctionCompiler {
+    public partial class FunctionCompiler {
         private FunctionScope scope;
-        private Dictionary<string, Value> implicitVars = new Dictionary<string, Value>();
 
         public FunctionCompiler(IScope parentScope) {
             scope = new FunctionScope(parentScope);
@@ -132,37 +131,6 @@ namespace Roboot.Compiler {
             return Value.Dynamic(Expression.Call(typeof(object).GetMethod("Equals"), a.Expression, b.Expression));
         }
 
-        public Expression CompileMatch(Value matchWith, Expr expr, LabelTarget failLabel) {
-            switch (expr) {
-                case Ast.Params e:
-                    return CompileMatch(matchWith, e, failLabel);
-                case Ast.Name e:
-                    return CompileMatch(matchWith, e, failLabel);
-                default:
-                    return CompileMatchValue(matchWith, expr, failLabel);
-            }
-        }
-
-        public Expression CompileMatch(Value matchWith, Ast.Name name, LabelTarget failLabel) {
-            if (implicitVars.ContainsKey(name.Str)) {
-                if (implicitVars[name.Str] == null) {
-                    implicitVars[name.Str] = matchWith;
-                    return ExprUtil.Empty();
-                } else {
-                    Value isEq = CompileEq(matchWith, implicitVars[name.Str]);
-                    return Expression.IfThen(Expression.Not(isEq.Expression), Expression.Goto(failLabel));
-                }
-            } else {
-                return CompileMatchValue(matchWith, name, failLabel);
-            }
-        }
-
-        public Expression CompileMatchValue(Value matchWith, Expr expr, LabelTarget failLabel) {
-            Value value = CompileExpr(expr);
-            Value isEq = CompileEq(matchWith, value);
-            return Expression.IfThen(Expression.Not(isEq.Expression), Expression.Goto(failLabel));
-        }
-
         public (Value success, Value cost, Value result) CompileMatchCase(Value matchWith, MatchCase matchCase) {
             LabelTarget failLabel = Expression.Label("fail");
             LabelTarget finishLabel = Expression.Label("finish");
@@ -170,21 +138,22 @@ namespace Roboot.Compiler {
             var costVar = Expression.Parameter(typeof(int), "cost");
 
             var compiler = new FunctionCompiler(scope);
+            var matcher = new Matcher(
+                compiler,
+                implicitVariables: matchCase.ImplicitVariables
+            );
             var instr = new List<Expression>();
 
-            foreach (var variable in matchCase.ImplicitVariables) {
-                compiler.implicitVars[variable.name] = null;
-            }
-
-            instr.Add(compiler.CompileMatch(matchWith, matchCase.MatchedValue, failLabel));
+            instr.Add(matcher.CompileMatch(matchWith, matchCase.MatchedValue, failLabel, MatchKind.exact));
 
             foreach (var variable in matchCase.ImplicitVariables) {
-                if (compiler.implicitVars[variable.name] == null) {
+                if (matcher.implicitVars[variable.name] == null) {
                     throw new Exception($"{variable.name} was not instantiated at {matchCase.Location}");
                 }
-                var value = compiler.implicitVars[variable.name];
+                var value = matcher.implicitVars[variable.name];
                 if (variable.type.IsSome()) {
                     var coerceResult = compiler.CompileCoerce(value, CompileExpr(variable.type.Get()));
+                    // TODO: this should always succeed due to type constraints
 
                     instr.Add(Expression.IfThenElse(
                         coerceResult.success.Expression,

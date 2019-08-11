@@ -73,6 +73,7 @@ namespace Roboot.Base {
                 typeBuilder.DefineField(field.Name, TypeBox.Unbox(field.Type), FieldAttributes.Public | FieldAttributes.InitOnly);
             }
 
+            // Constructor
             var constuctor = typeBuilder.DefineConstructor(
                 MethodAttributes.Public, CallingConventions.Standard,
                 typeValue.Fields.Select(field => TypeBox.Unbox(field.Type)).ToArray()
@@ -85,6 +86,11 @@ namespace Roboot.Base {
                 ilgen.Emit(OpCodes.Stfld, typeBuilder.GetField(typeValue.Fields[i].Name));
             }
             ilgen.Emit(OpCodes.Ret);
+
+            // TODO: ToString
+            // TODO: structural equality
+            // TODO: structural comparison
+            // TODO: structural hashcode
 
             return Unit.Instance;
         }
@@ -108,7 +114,7 @@ namespace Roboot.Base {
             }
 
             // Add constructor
-            string constuctorName = "make" + name; //name.Substring(0, 1).ToLower() + name.Substring(1);
+            string constuctorName = "make" + name;
 
             stmts.Add(new Ast.ModuleFunStmt(
                           constuctorName,
